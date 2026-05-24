@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tandem - סטטוס פרויקט ותכנון</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { primary: '#3b82f6', }
+                }
+            }
+        }
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-target="${tabId}"]`).classList.add('active');
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap');
+        body { font-family: 'Heebo', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-tab { cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; }
+        .nav-tab:hover { color: #3b82f6; }
+        .nav-tab.active { border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: 600; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+
+    <header class="bg-white dark:bg-gray-950 shadow-sm border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg flex items-center justify-center">
+                        <i class="fa-solid fa-layer-group text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-l from-blue-400 to-indigo-500">Tandem (VibeOps)</h1>
+                </div>
+                <div class="flex space-x-8 rtl:space-x-reverse h-full">
+                    <div class="nav-tab active flex items-center px-1" data-target="overview" onclick="switchTab('overview')">
+                        <i class="fa-solid fa-chart-pie ml-2"></i> סקירה כללית
+                    </div>
+                    <div class="nav-tab flex items-center px-1" data-target="progress" onclick="switchTab('progress')">
+                        <i class="fa-solid fa-list-check ml-2"></i> שלבי תכנון וביצוע
+                    </div>
+                    <div class="nav-tab flex items-center px-1" data-target="architecture" onclick="switchTab('architecture')">
+                        <i class="fa-solid fa-sitemap ml-2"></i> ארכיטקטורה ו-Flows
+                    </div>
+                    <div class="nav-tab flex items-center px-1" data-target="mockups" onclick="switchTab('mockups')">
+                        <i class="fa-solid fa-palette ml-2"></i> מוקאפים עיצוביים
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Tab: Overview -->
+        <div id="overview" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="md:col-span-2 glass-panel p-8 rounded-2xl shadow-xl">
+                    <h2 class="text-3xl font-bold mb-4 text-white">החזון: AI Product OS</h2>
+                    <p class="text-lg text-gray-300 leading-relaxed mb-6">
+                        המערכת נועדה לעזור למפתחים ויזמים עצמאיים לעבור מרעיון למוצר עובד, באמצעות מתודולוגיית <strong>SPDD</strong> (Structured Prompt-Driven Development). המערכת שומרת "זיכרון" של הפרויקט, מפיקה פרומפטים מובנים (Mission Briefs) עבור כלי AI (כמו Cursor או Claude), וקולטת את התוצרים כדי לנהל מעקב מבוסס ראיות.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                            <h3 class="font-bold text-blue-400 mb-2"><i class="fa-solid fa-bullseye ml-1"></i> יעדים מרכזיים (MVP)</h3>
+                            <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
+                                <li>הפיכת רעיון לדרישות מובנות (PRD)</li>
+                                <li>שמירת "זיכרון" קבלת החלטות</li>
+                                <li>ייצור משימות טכניות</li>
+                                <li>שילוב שקוף של כלי AI חיצוניים</li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                            <h3 class="font-bold text-red-400 mb-2"><i class="fa-solid fa-ban ml-1"></i> מחוץ לתחום (Non-goals)</h3>
+                            <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
+                                <li>תחליף מלא ל-IDE או Cursor</li>
+                                <li>הרצת סוכנים אוטונומיים אוטומטית</li>
+                                <li>ניהול הרשאות Enterprise מסובך</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass-panel p-6 rounded-2xl shadow-xl flex flex-col items-center justify-center">
+                    <h3 class="text-xl font-bold mb-4 text-center">התקדמות הפרויקט</h3>
+                    <div class="w-full max-w-[200px]">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                    <p class="text-center mt-4 text-gray-400 text-sm">ה-MVP נמצא בשלבי סיום. נותרו משימות ליטוש ומקרי קצה.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Progress -->
+        <div id="progress" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">פירוט שלבי הפיתוח</h2>
+            
+            <div class="space-y-6">
+                <!-- Completed -->
+                <div class="glass-panel p-6 rounded-xl border-l-4 border-green-500">
+                    <h3 class="text-xl font-bold text-green-400 mb-4"><i class="fa-solid fa-check-circle ml-2"></i> מה כבר נעשה (Completed)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <ul class="space-y-2 text-gray-300">
+                            <li><i class="fa-solid fa-check text-green-500 ml-2"></i> <strong>תשתית:</strong> Next.js App Router, Tailwind, Supabase Auth & DB.</li>
+                            <li><i class="fa-solid fa-check text-green-500 ml-2"></i> <strong>ה-Wizard:</strong> קליטת רעיון, הפקת Product Brief ו-PRD אוטומטי מבוסס AI.</li>
+                            <li><i class="fa-solid fa-check text-green-500 ml-2"></i> <strong>תכנון משימות:</strong> המלצות ארכיטקטורה ופירוק למשימות וייעוד AI Router.</li>
+                            <li><i class="fa-solid fa-check text-green-500 ml-2"></i> <strong>מעגל SPDD:</strong> יצירת Mission Briefs וקליטת Return Briefs.</li>
+                        </ul>
+                        <ul class="space-y-2 text-gray-300">
+                            <li><i class="fa-solid fa-check text-green-500 ml-2"></i> <strong>ממשק:</strong> לוח פיקוד (Command Center), יומן החלטות (Decision Log).</li>
+                            <li><i class="fa-solid fa-check text-green-500 ml-2"></i> <strong>לוקליזציה:</strong> תרגום מלא של הממשק לעברית (RTL).</li>
+                            <li><i class="fa-solid fa-check text-green-500 ml-2"></i> <strong>Copilot:</strong> צ'אט מלווה חכם שמייצר פרומפטים ישירות מהממשק.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- To Do -->
+                <div class="glass-panel p-6 rounded-xl border-l-4 border-orange-500">
+                    <h3 class="text-xl font-bold text-orange-400 mb-4"><i class="fa-solid fa-hourglass-half ml-2"></i> מה נשאר לעשות (To Do / Future Scope)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <ul class="space-y-2 text-gray-300">
+                            <li><i class="fa-regular fa-circle text-orange-500 ml-2"></i> <strong>בדיקות E2E:</strong> סימולציה מלאה של פתיחת פרויקט ועד סיום עם כלי חיצוני.</li>
+                            <li><i class="fa-regular fa-circle text-orange-500 ml-2"></i> <strong>Drift Detection מתקדם:</strong> זיהוי אוטומטי ומדויק יותר של סטיות ב-Return Briefs.</li>
+                            <li><i class="fa-regular fa-circle text-orange-500 ml-2"></i> <strong>פרופיל אישי:</strong> אזור Settings מתקדם לניהול מפתחות API פרטיים (BYOK).</li>
+                        </ul>
+                        <ul class="space-y-2 text-gray-300">
+                            <li><i class="fa-regular fa-circle text-orange-500 ml-2"></i> <strong>אופטימיזציית AI:</strong> חידוד הפרומפטים כך שלא יאבדו קונטקסט לאורך זמן.</li>
+                            <li><i class="fa-solid fa-users text-gray-500 ml-2"></i> <em>(Future Scope)</em> שיתוף פעולה בצוותים (Team Collaboration).</li>
+                            <li><i class="fa-solid fa-plug text-gray-500 ml-2"></i> <em>(Future Scope)</em> תוספים אינטגרטיביים ישירות לסביבת הפיתוח.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Architecture -->
+        <div id="architecture" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">תרשים זרימה - SPDD Method</h2>
+            <div class="glass-panel p-6 rounded-2xl flex justify-center mb-8 bg-gray-900/50">
+                <div class="mermaid">
+                    graph TD
+                    A[משתמש מזין רעיון מופשט] --> B(Tandem AI: הבהרות ושאלות)
+                    B --> C[הפקת Product Brief]
+                    C --> D[יצירת PRD מלא]
+                    D --> E[הגדרת ארכיטקטורה וסטאק טכנולוגי]
+                    E --> F[פירוק למשימות טכניות]
+                    F --> G[הפקת Mission Brief עבור Cursor/Claude]
+                    G --> H((עבודה בכלי חיצוני))
+                    H --> I[הפקת Return Brief]
+                    I --> J{Tandem: Drift Detection}
+                    J -- אישור או עדכון --> K[עדכון Product Memory & Living Docs]
+                    K --> F
+                    
+                    classDef default fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff;
+                    classDef human fill:#475569,stroke:#94a3b8,color:#fff;
+                    class A,H human;
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-panel p-6 rounded-xl">
+                    <h3 class="text-lg font-bold mb-3 text-indigo-400">הערימה הטכנולוגית (Tech Stack)</h3>
+                    <ul class="list-disc list-inside text-gray-300 text-sm space-y-2">
+                        <li><strong>Frontend:</strong> Next.js App Router, Tailwind CSS, shadcn/ui</li>
+                        <li><strong>Backend:</strong> Next.js Route Handlers, Supabase (PostgreSQL)</li>
+                        <li><strong>AI Layer:</strong> Vercel AI SDK (OpenAI / Claude)</li>
+                        <li><strong>Authentication:</strong> Supabase Auth + RLS</li>
+                        <li><strong>Deployment:</strong> Vercel</li>
+                    </ul>
+                </div>
+                <div class="glass-panel p-6 rounded-xl">
+                    <h3 class="text-lg font-bold mb-3 text-teal-400">מודל הנתונים (Data Model)</h3>
+                    <ul class="list-disc list-inside text-gray-300 text-sm space-y-2">
+                        <li><strong>Projects:</strong> מחזיק את המידע הראשי.</li>
+                        <li><strong>Artifacts:</strong> שומר גרסאות של PRD, Architecture, Brief (באמצעות JSONB).</li>
+                        <li><strong>Tasks:</strong> רשימת משימות מסודרת לסטטוסים.</li>
+                        <li><strong>Decisions:</strong> יומן החלטות המקושר ישירות ל-Artifacts ומשימות.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Mockups -->
+        <div id="mockups" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">מוקאפים עיצוביים</h2>
+            <div class="glass-panel p-8 rounded-2xl">
+                <p class="text-gray-300 mb-6">
+                    הממשק בנוי להיות מודרני, מבוסס "Glassmorphism" ו-Dark Mode כדי להתאים לסביבות הפיתוח המוכרות למפתחים. להלן תצוגה מקדימה המבוססת על קובץ <code class="text-blue-400 bg-gray-800 px-1 rounded">design-proposal.html</code> שיצרנו קודם לכן.
+                </p>
+                <div class="border border-gray-700 rounded-xl overflow-hidden shadow-2xl relative">
+                    <div class="bg-gray-800 px-4 py-2 flex items-center gap-2 border-b border-gray-700">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="ml-4 text-xs text-gray-400 font-mono">Tandem - Dashboard Preview</span>
+                    </div>
+                    <iframe src="design-proposal.html" class="w-full h-[600px] border-none bg-gray-950"></iframe>
+                    
+                    <div class="absolute bottom-4 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm shadow-lg shadow-blue-500/20 backdrop-blur-md">
+                        <i class="fa-solid fa-up-right-from-square mr-2"></i> מוקאפ חי בתוך iframe
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Init Chart
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['בוצע', 'נותר ל-MVP'],
+                datasets: [{
+                    data: [85, 15],
+                    backgroundColor: ['#3b82f6', '#1e293b'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#cbd5e1' } }
+                },
+                cutout: '75%'
+            }
+        });
+    </script>
+</body>
+</html>

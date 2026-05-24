@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הצעות להמשך פיתוח - Tandem</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#3b82f6', } } }
+        }
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-target="${tabId}"]`).classList.add('active');
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap');
+        body { font-family: 'Heebo', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-tab { cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; }
+        .nav-tab:hover { color: #3b82f6; }
+        .nav-tab.active { border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: 600; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+
+    <header class="bg-white dark:bg-gray-950 shadow-sm border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg flex items-center justify-center">
+                        <i class="fa-solid fa-lightbulb text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-l from-indigo-400 to-purple-500">הצעות פיתוח לעתיד</h1>
+                </div>
+                <div class="flex space-x-8 rtl:space-x-reverse h-full">
+                    <div class="nav-tab active flex items-center px-1" data-target="byok" onclick="switchTab('byok')">
+                        <i class="fa-solid fa-key ml-2"></i> 1. הגדרות ו-BYOK
+                    </div>
+                    <div class="nav-tab flex items-center px-1" data-target="drift" onclick="switchTab('drift')">
+                        <i class="fa-solid fa-radar ml-2"></i> 2. Drift Detection
+                    </div>
+                    <div class="nav-tab flex items-center px-1" data-target="e2e" onclick="switchTab('e2e')">
+                        <i class="fa-solid fa-flask ml-2"></i> 3. בדיקות E2E
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Tab 1: BYOK -->
+        <div id="byok" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h2 class="text-3xl font-bold mb-4 text-white">פרופיל אישי וניהול מפתחות (BYOK)</h2>
+                    <p class="text-gray-300 leading-relaxed mb-6">
+                        אפשרות למשתמשים להזין מפתחות API משלהם עבור ספקיות ה-AI (כגון OpenAI ו-Anthropic). זה יאפשר חיסכון בעלויות המערכת ויאפשר למשתמשים לנצל את ה-Tier האישי שלהם.
+                    </p>
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-6">
+                        <h3 class="font-bold text-indigo-400 mb-2"><i class="fa-solid fa-database ml-1"></i> שינויי Database</h3>
+                        <p class="text-sm text-gray-300">הוספת טבלת `user_settings` ל-Supabase לשמירת המפתחות. יש לשקול שימוש ב-pgsodium להצפנת המפתחות ברמת מסד הנתונים כדי לשמור על אבטחה מקסימלית.</p>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl flex justify-center mb-8">
+                        <div class="mermaid">
+                            flowchart LR
+                            A[Tandem Copilot] --> B{יש מפתח אישי?}
+                            B -- כן --> C[שימוש ב-Key ממסד הנתונים]
+                            B -- לא --> D[שימוש ב-Key הגלובלי / שגיאה]
+                            C --> E[בקשה ל-OpenAI/Claude]
+                            D --> E
+                            classDef default fill:#1e293b,stroke:#818cf8,stroke-width:2px,color:#fff;
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mockup -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">מוקאפ: מסך הגדרות</h3>
+                    <div class="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-xl relative overflow-hidden">
+                        <div class="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                        <h4 class="text-lg font-bold mb-2">הגדרות בינה מלאכותית</h4>
+                        <p class="text-sm text-gray-500 mb-6">הזן את מפתחות ה-API שלך כדי להשתמש במודלים באופן חופשי (Bring Your Own Key).</p>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">OpenAI API Key</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-lock absolute right-3 top-3 text-gray-500"></i>
+                                    <input type="password" value="sk-1234567890abcdef" class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg pr-10 pl-4 py-2 text-sm text-left focus:ring-2 focus:ring-blue-500 outline-none" dir="ltr" disabled>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Anthropic API Key</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-lock absolute right-3 top-3 text-gray-500"></i>
+                                    <input type="password" placeholder="sk-ant-api03-..." class="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg pr-10 pl-4 py-2 text-sm text-left focus:ring-2 focus:ring-blue-500 outline-none" dir="ltr">
+                                </div>
+                            </div>
+                            <button class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors">
+                                <i class="fa-solid fa-save ml-2"></i> שמור שינויים
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Drift Detection -->
+        <div id="drift" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h2 class="text-3xl font-bold mb-4 text-white">אופטימיזציית Drift Detection</h2>
+                    <p class="text-gray-300 leading-relaxed mb-6">
+                        שיפור מנגנון זיהוי הסטייה (Drift). כרגע, קליטת Return Briefs יכולה לפספס סטיות עדינות מה-PRD או לבזבז קונטקסט (Tokens) רב מדי של המודל. הצעד הזה ישפר את הזיהוי על ידי חילוץ סמנטי והשוואה נקודתית.
+                    </p>
+                    <div class="glass-panel p-6 rounded-2xl flex justify-center mb-8">
+                        <div class="mermaid">
+                            flowchart TD
+                            A[Return Brief נכנס] --> B[AI: זיהוי עובדות ומבני נתונים שונו]
+                            B --> C{השוואה מול ה-PRD הנוכחי}
+                            C -- אין סטייה --> D[עדכון סטטוס משימה ל-Done]
+                            C -- זוהתה סטייה --> E[הקפצת התראה למשתמש (Drift Alert)]
+                            E --> F[המשתמש מאשר: העדכון נרשם כ-Decision]
+                            E --> G[המשתמש דוחה: נוצרת משימת תיקון]
+                            classDef default fill:#1e293b,stroke:#0ea5e9,stroke-width:2px,color:#fff;
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mockup -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">מוקאפ: התראת Drift בממשק</h3>
+                    <div class="bg-gray-950 border border-orange-500/30 rounded-xl p-6 shadow-xl">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-orange-400">זוהתה חריגה ארכיטקטונית</h4>
+                                <p class="text-xs text-gray-400">מתוך משימה #12: "הקמת שכבת Auth"</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-900 rounded-lg p-4 mb-4 border border-gray-800">
+                            <p class="text-sm text-gray-300 mb-2"><strong>התוכנית המקורית (PRD):</strong></p>
+                            <p class="text-sm text-gray-400 font-mono bg-gray-950 p-2 rounded line-through text-red-400 mb-4">Use Supabase Auth strictly.</p>
+                            
+                            <p class="text-sm text-gray-300 mb-2"><strong>בפועל בוצע (Return Brief):</strong></p>
+                            <p class="text-sm text-gray-400 font-mono bg-gray-950 p-2 rounded text-green-400">Implemented NextAuth.js (Auth.js) with Google Provider.</p>
+                        </div>
+                        
+                        <div class="flex gap-3">
+                            <button class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+                                <i class="fa-solid fa-check ml-1"></i> אשר ועדכן ארכיטקטורה
+                            </button>
+                            <button class="flex-1 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2 rounded-lg transition-colors border border-gray-700">
+                                <i class="fa-solid fa-times ml-1"></i> דחה - ייצר משימת תיקון
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: E2E Tests -->
+        <div id="e2e" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h2 class="text-3xl font-bold mb-4 text-white">בדיקות וסימולציה מלאה (E2E)</h2>
+                    <p class="text-gray-300 leading-relaxed mb-6">
+                        לקראת שחרור ה-MVP, חובה לבצע מעבר אינטגרטיבי על כלל המערכת מקצה לקצה - יצירת יוזר חדש, הפעלת ה-Wizard, אישור ה-PRD, יצירת משימות, שימוש ב-Copilot וקליטת Return Brief פיקטיבי, כדי לוודא שאין צווארי בקבוק או שגיאות ב-Database (כגון RLS או שגיאות Parsing של ה-JSONB).
+                    </p>
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-6">
+                        <h3 class="font-bold text-teal-400 mb-2"><i class="fa-solid fa-check-double ml-1"></i> תוכנית הבדיקה</h3>
+                        <ul class="list-decimal list-inside text-sm text-gray-300 space-y-1">
+                            <li>Signup / Login -> הצלחה</li>
+                            <li>הזנת "רעיון" חדש ב-Wizard -> הפקת PRD מלא</li>
+                            <li>בדיקת Vercel AI SDK Edge Cases (Timeouts / JSON malformed)</li>
+                            <li>בדיקת הרשאות (RLS) בין משתמשים שונים במסד הנתונים</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Mockup -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">מוקאפ: פלט Playwright/Cypress</h3>
+                    <div class="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden shadow-xl font-mono text-sm relative">
+                        <div class="bg-gray-900 px-4 py-2 flex items-center gap-2 border-b border-gray-800">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="ml-4 text-xs text-gray-500 font-sans" dir="ltr">bash - E2E Tests</span>
+                        </div>
+                        <div class="p-4 text-left" dir="ltr">
+                            <div class="text-gray-400 mb-2">> playwright test</div>
+                            <div class="text-green-400 mb-1">✓  [chromium] › auth.spec.ts: user login flow (1.2s)</div>
+                            <div class="text-green-400 mb-1">✓  [chromium] › wizard.spec.ts: generates complete PRD (4.5s)</div>
+                            <div class="text-green-400 mb-1">✓  [chromium] › copilot.spec.ts: chat memory persistance (2.1s)</div>
+                            <div class="text-green-400 mb-3">✓  [chromium] › spdd.spec.ts: drift detection triggers alert (3.8s)</div>
+                            
+                            <div class="text-gray-300 border-t border-gray-800 pt-3">
+                                <span class="text-green-400 font-bold">4 passed</span> (11.6s)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuildPilot — Implementation Overview</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #3b82f6; --blue-dark: #1d4ed8; --blue-light: #eff6ff;
+    --green: #10b981; --green-light: #ecfdf5;
+    --amber: #f59e0b; --amber-light: #fffbeb;
+    --red: #ef4444; --red-light: #fef2f2;
+    --purple: #8b5cf6; --purple-light: #f5f3ff;
+    --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1; --slate-400: #94a3b8; --slate-500: #64748b;
+    --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b;
+    --slate-900: #0f172a; --white: #ffffff;
+    --sidebar-w: 260px; --content-max: 900px;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--slate-50); color: var(--slate-800); display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { width: var(--sidebar-w); background: var(--slate-900); color: var(--slate-300); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; padding: 24px 0; z-index: 100; }
+  .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .sidebar-logo .product-name { font-size: 18px; font-weight: 700; color: var(--white); letter-spacing: -.3px; }
+  .sidebar-logo .product-sub { font-size: 11px; color: var(--slate-400); margin-top: 2px; }
+  .sidebar-logo .version-badge { display: inline-block; background: var(--blue); color: white; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-top: 6px; font-weight: 600; }
+  .nav-section { padding: 16px 0 4px; }
+  .nav-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--slate-500); padding: 0 20px 6px; }
+  .nav-link { display: block; padding: 6px 20px; font-size: 13px; color: var(--slate-400); text-decoration: none; border-left: 2px solid transparent; transition: all .15s; line-height: 1.4; }
+  .nav-link:hover { color: var(--white); background: rgba(255,255,255,.05); border-left-color: var(--blue); }
+  .nav-link.active { color: var(--white); border-left-color: var(--blue); background: rgba(59,130,246,.1); }
+  .nav-link .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .dot-done { background: var(--green); }
+  .dot-wip { background: var(--amber); }
+  .dot-todo { background: var(--slate-600); }
+
+  /* MAIN */
+  .main { margin-left: var(--sidebar-w); flex: 1; padding: 48px; max-width: calc(var(--sidebar-w) + var(--content-max) + 96px); }
+  .page-header { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 2px solid var(--slate-200); }
+  .page-header h1 { font-size: 36px; font-weight: 800; color: var(--slate-900); letter-spacing: -.5px; }
+  .page-header p { font-size: 17px; color: var(--slate-500); margin-top: 8px; line-height: 1.6; }
+  .page-header .meta { display: flex; gap: 20px; margin-top: 16px; flex-wrap: wrap; }
+  .meta-item { font-size: 12px; color: var(--slate-500); display: flex; align-items: center; gap: 5px; }
+  .meta-item strong { color: var(--slate-700); }
+
+  /* SECTIONS */
+  section { margin-bottom: 64px; scroll-margin-top: 32px; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .section-num { width: 32px; height: 32px; background: var(--blue); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .section-header h2 { font-size: 24px; font-weight: 700; color: var(--slate-900); }
+  .section-header .section-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  h3 { font-size: 17px; font-weight: 700; color: var(--slate-800); margin: 28px 0 12px; }
+  h4 { font-size: 14px; font-weight: 600; color: var(--slate-700); margin: 20px 0 8px; }
+  p { font-size: 15px; line-height: 1.7; color: var(--slate-600); margin-bottom: 12px; }
+
+  /* CARDS & BOXES */
+  .card { background: var(--white); border: 1px solid var(--slate-200); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .callout { border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; border-left: 3px solid; }
+  .callout-blue { background: var(--blue-light); border-color: var(--blue); }
+  .callout-green { background: var(--green-light); border-color: var(--green); }
+  .callout-amber { background: var(--amber-light); border-color: var(--amber); }
+  .callout-red { background: var(--red-light); border-color: var(--red); }
+  .callout p { margin: 0; font-size: 13.5px; }
+  .callout strong { color: var(--slate-800); }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .badge-green { background: var(--green-light); color: #065f46; }
+  .badge-amber { background: var(--amber-light); color: #92400e; }
+  .badge-red { background: var(--red-light); color: #991b1b; }
+  .badge-blue { background: var(--blue-light); color: var(--blue-dark); }
+  .badge-purple { background: var(--purple-light); color: #5b21b6; }
+  .badge-slate { background: var(--slate-100); color: var(--slate-600); }
+
+  /* CODE */
+  .code-block { background: var(--slate-900); border-radius: 10px; overflow: hidden; margin: 16px 0; }
+  .code-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(255,255,255,.05); border-bottom: 1px solid rgba(255,255,255,.08); }
+  .code-filename { font-size: 12px; color: var(--slate-400); font-family: 'SF Mono', 'Fira Code', monospace; }
+  .code-lang { font-size: 10px; color: var(--slate-500); background: rgba(255,255,255,.08); padding: 1px 6px; border-radius: 4px; }
+  pre { margin: 0 !important; border-radius: 0 !important; }
+  pre code { font-size: 12.5px !important; line-height: 1.6 !important; }
+  code.inline { background: var(--slate-100); color: var(--slate-700); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; font-family: 'SF Mono', 'Fira Code', monospace; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 24px; }
+  th { background: var(--slate-100); text-align: left; padding: 8px 12px; font-weight: 600; color: var(--slate-700); border-bottom: 2px solid var(--slate-200); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--slate-100); color: var(--slate-600); }
+  tr:hover td { background: var(--slate-50); }
+
+  /* TIMELINE */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 8px; bottom: 8px; width: 2px; background: var(--slate-200); }
+  .timeline-item { position: relative; margin-bottom: 20px; }
+  .timeline-dot { position: absolute; left: -24px; top: 4px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--white); }
+  .timeline-dot.done { background: var(--green); }
+  .timeline-dot.wip { background: var(--amber); }
+  .timeline-dot.todo { background: var(--slate-300); }
+  .timeline-title { font-weight: 600; font-size: 14px; color: var(--slate-800); margin-bottom: 4px; }
+  .timeline-desc { font-size: 13px; color: var(--slate-500); }
+
+  /* DIAGRAM — SPDD LOOP */
+  .spdd-loop { display: flex; align-items: center; gap: 0; justify-content: center; flex-wrap: nowrap; margin: 24px 0; overflow-x: auto; padding: 16px 0; }
+  .loop-step { text-align: center; flex-shrink: 0; }
+  .loop-box { width: 90px; height: 70px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 2px solid; gap: 4px; }
+  .loop-icon { font-size: 18px; }
+  .loop-arrow { font-size: 20px; color: var(--slate-400); flex-shrink: 0; margin: 0 4px; align-self: center; }
+  .loop-label { font-size: 10px; color: var(--slate-500); margin-top: 4px; }
+  .loop-box.plan { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
+  .loop-box.mission { background: #f5f3ff; border-color: #8b5cf6; color: #5b21b6; }
+  .loop-box.build { background: #ecfdf5; border-color: #10b981; color: #065f46; }
+  .loop-box.ret { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+  .loop-box.review { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+  .loop-box.memory { background: #f0fdf4; border-color: #22c55e; color: #15803d; }
+
+  /* ARCHITECTURE DIAGRAM */
+  .arch-diagram { background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 12px; padding: 24px; margin: 16px 0; }
+  .arch-layer { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .arch-box { border: 2px solid; border-radius: 8px; padding: 10px 16px; font-size: 12px; font-weight: 600; text-align: center; min-width: 100px; }
+  .arch-divider { display: flex; align-items: center; gap: 12px; margin: 8px 0; color: var(--slate-400); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .arch-divider::before, .arch-divider::after { content: ''; flex: 1; height: 1px; background: var(--slate-200); }
+
+  /* MOCKUPS */
+  .browser-frame { background: var(--white); border: 1px solid var(--slate-200); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); margin: 20px 0; }
+  .browser-bar { background: var(--slate-100); border-bottom: 1px solid var(--slate-200); padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+  .browser-dots { display: flex; gap: 5px; }
+  .browser-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .browser-dot.r { background: #ff5f57; }
+  .browser-dot.y { background: #ffbd2e; }
+  .browser-dot.g { background: #28c840; }
+  .browser-url { flex: 1; background: var(--slate-200); border-radius: 4px; padding: 3px 10px; font-size: 11px; color: var(--slate-500); font-family: monospace; }
+  .browser-content { display: flex; min-height: 320px; }
+  .mock-sidebar { width: 200px; background: var(--slate-900); padding: 16px; flex-shrink: 0; }
+  .mock-sidebar-logo { color: white; font-weight: 700; font-size: 14px; margin-bottom: 20px; }
+  .mock-nav-item { color: var(--slate-400); font-size: 12px; padding: 6px 8px; border-radius: 6px; margin-bottom: 2px; cursor: default; }
+  .mock-nav-item.active { background: rgba(59,130,246,.2); color: var(--blue); }
+  .mock-main { flex: 1; padding: 20px; background: var(--slate-50); }
+  .mock-heading { font-size: 18px; font-weight: 700; color: var(--slate-800); margin-bottom: 16px; }
+  .mock-card { background: white; border: 1px solid var(--slate-200); border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+  .mock-card-title { font-size: 13px; font-weight: 600; color: var(--slate-800); margin-bottom: 4px; }
+  .mock-card-sub { font-size: 11px; color: var(--slate-500); }
+  .mock-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; }
+  .mock-badge.blue { background: var(--blue-light); color: var(--blue-dark); }
+  .mock-badge.green { background: var(--green-light); color: #065f46; }
+  .mock-badge.amber { background: var(--amber-light); color: #92400e; }
+  .mock-btn { display: inline-block; background: var(--blue); color: white; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 6px; margin-top: 12px; }
+  .mock-input { border: 1px solid var(--slate-300); border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--slate-600); width: 100%; margin-bottom: 8px; background: white; }
+  .mock-textarea { border: 1px solid var(--slate-300); border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--slate-600); width: 100%; height: 80px; background: white; resize: none; }
+
+  /* DB SCHEMA */
+  .db-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
+  .db-table { background: white; border: 1px solid var(--slate-200); border-radius: 8px; overflow: hidden; font-size: 12px; }
+  .db-table-header { background: var(--slate-800); color: white; padding: 8px 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .db-table-header span { font-size: 10px; color: var(--slate-400); font-weight: 400; }
+  .db-field { padding: 5px 12px; border-bottom: 1px solid var(--slate-100); display: flex; gap: 8px; align-items: center; }
+  .db-field:last-child { border-bottom: none; }
+  .db-field-name { color: var(--slate-700); font-weight: 500; flex: 1; }
+  .db-field-type { color: var(--slate-400); font-size: 10px; font-family: monospace; }
+  .db-field-pk { color: var(--amber); font-size: 10px; font-weight: 700; }
+  .db-field-fk { color: var(--blue); font-size: 10px; font-weight: 700; }
+
+  /* PHASE TABLE */
+  .phase-row td:first-child { font-weight: 700; }
+  .phase-done { border-left: 3px solid var(--green); }
+  .phase-wip { border-left: 3px solid var(--amber); }
+  .phase-todo { border-left: 3px solid var(--slate-300); }
+
+  /* CHALLENGE CARDS */
+  .challenge-card { background: white; border: 1px solid var(--slate-200); border-radius: 10px; padding: 18px 20px; margin-bottom: 12px; display: flex; gap: 14px; align-items: flex-start; }
+  .challenge-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .challenge-title { font-weight: 700; font-size: 14px; color: var(--slate-800); margin-bottom: 4px; }
+  .challenge-desc { font-size: 13px; color: var(--slate-500); line-height: 1.5; }
+  .challenge-solution { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 6px; }
+
+  /* COMPARISON TABLE */
+  .compare-winner { background: var(--green-light); }
+  .compare-winner td { color: #065f46 !important; }
+  .compare-winner td:first-child { font-weight: 700; }
+
+  /* RISK TABLE */
+  .risk-critical { background: #fef2f2; }
+  .risk-high { background: #fffbeb; }
+  .risk-medium { background: var(--white); }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--slate-200); margin: 40px 0; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); }
+    .main { margin-left: 0; padding: 24px; }
+  }
+  @media print {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="product-name">🧭 BuildPilot</div>
+    <div class="product-sub">AI Product OS — Implementation Overview</div>
+    <span class="version-badge">v0.1 — Phase 0 ✅</span>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Product</div>
+    <a href="#what-is" class="nav-link">1. What Is BuildPilot</a>
+    <a href="#what-done" class="nav-link">2. What Was Built</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Analysis</div>
+    <a href="#challenges" class="nav-link">3. Challenges</a>
+    <a href="#alternatives" class="nav-link">4. Alternatives Considered</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Technical</div>
+    <a href="#architecture" class="nav-link">5. Architecture & Data Flow</a>
+    <a href="#database" class="nav-link">6. Database Schema</a>
+    <a href="#code" class="nav-link">7. Key Code Snippets</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Forward Plan</div>
+    <a href="#mockups" class="nav-link">8. UI Mockups</a>
+    <a href="#phases" class="nav-link">9. Phase-by-Phase Plan</a>
+    <a href="#risks" class="nav-link">10. Risks & Open Questions</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Status</div>
+    <a href="#phases" class="nav-link"><span class="status-dot dot-done"></span>Phase 0 — 8/9 ✅</a>
+    <a href="#phases" class="nav-link"><span class="status-dot dot-todo"></span>Phase 1 — 0/7</a>
+    <a href="#phases" class="nav-link"><span class="status-dot dot-todo"></span>Phase 2 — 0/3</a>
+    <a href="#phases" class="nav-link"><span class="status-dot dot-todo"></span>Phase 3–7 — pending</a>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <h1>BuildPilot — Implementation Overview</h1>
+    <p>A full retrospective, architectural review, and forward implementation plan for the BuildPilot AI Product OS. Includes mockups, data flow, challenges, alternatives, and key code to review.</p>
+    <div class="meta">
+      <span class="meta-item">📅 <strong>Date:</strong> May 2026</span>
+      <span class="meta-item">🧑‍💻 <strong>Project:</strong> mindcetdev@gmail.com / MindCET</span>
+      <span class="meta-item">📍 <strong>Code:</strong> C:\dev\buildpilot</span>
+      <span class="meta-item">🌿 <strong>Repo:</strong> ilanmichalby/tandem-claude</span>
+      <span class="meta-item">🚀 <strong>Stack:</strong> Next.js 16 · Supabase · Claude</span>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 1: WHAT IS BUILDPILOT
+  ───────────────────────────────────────────── -->
+  <section id="what-is">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>What Is BuildPilot</h2>
+      <span class="badge badge-blue section-tag">Product Vision</span>
+    </div>
+
+    <div class="callout callout-blue">
+      <p><strong>One-liner:</strong> BuildPilot is an AI-guided product development OS that helps independent builders turn an idea into real, maintainable software — by guiding the process, preserving decisions, generating living documentation, and coordinating work across external AI tools.</p>
+    </div>
+
+    <p>The core insight: AI coding tools (Cursor, Claude Code, v0, Lovable) are getting very good at <em>generating code</em>, but they are terrible at <em>building products</em>. They have no memory, no process, no structure — every session starts cold. BuildPilot is the missing layer.</p>
+
+    <h3>The SPDD Loop — Core Mechanic</h3>
+    <p>BuildPilot implements the <strong>Structured Prompt-Driven Development</strong> loop. This is the heartbeat of the product:</p>
+
+    <div class="spdd-loop">
+      <div class="loop-step">
+        <div class="loop-box plan">
+          <span class="loop-icon">🗺️</span>
+          <span>PLAN</span>
+        </div>
+        <div class="loop-label">Brief → PRD<br>Architecture</div>
+      </div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">
+        <div class="loop-box mission">
+          <span class="loop-icon">📋</span>
+          <span>MISSION</span>
+        </div>
+        <div class="loop-label">Generate<br>Mission Brief</div>
+      </div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">
+        <div class="loop-box build">
+          <span class="loop-icon">⚙️</span>
+          <span>BUILD</span>
+        </div>
+        <div class="loop-label">Cursor / v0<br>Claude Code</div>
+      </div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">
+        <div class="loop-box ret">
+          <span class="loop-icon">📥</span>
+          <span>RETURN</span>
+        </div>
+        <div class="loop-label">Paste summary<br>back in</div>
+      </div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">
+        <div class="loop-box review">
+          <span class="loop-icon">🔍</span>
+          <span>REVIEW</span>
+        </div>
+        <div class="loop-label">AI analyzes<br>drift / risks</div>
+      </div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">
+        <div class="loop-box memory">
+          <span class="loop-icon">💾</span>
+          <span>MEMORY</span>
+        </div>
+        <div class="loop-label">Decisions +<br>risks saved</div>
+      </div>
+      <div class="loop-arrow">↩</div>
+    </div>
+
+    <h3>Who It's For</h3>
+    <div class="card-grid">
+      <div class="card">
+        <strong>🧑‍💼 Independent Builders</strong>
+        <p style="margin-top:8px; font-size:13px;">Founders, PMs, educators building with AI — not full-time engineers. Need guidance, structure, confidence.</p>
+      </div>
+      <div class="card">
+        <strong>🧑‍💻 Semi-Technical Builders</strong>
+        <p style="margin-top:8px; font-size:13px;">Can read code, use Cursor/Supabase/GitHub — but don't want to manage full product complexity manually.</p>
+      </div>
+      <div class="card">
+        <strong>🔮 Future: Teams</strong>
+        <p style="margin-top:8px; font-size:13px;">Shared AI-native product memory. Multiple contributors, same source of truth. Not MVP scope.</p>
+      </div>
+    </div>
+
+    <h3>The 6 Core Problems Being Solved</h3>
+    <table>
+      <tr><th>#</th><th>Problem</th><th>BuildPilot Solution</th></tr>
+      <tr><td>1</td><td>No process — don't know what to do next</td><td>Stage-based workflow with explicit next action</td></tr>
+      <tr><td>2</td><td>Tool overload — don't know which tool to use</td><td>AI-powered tool routing per task type</td></tr>
+      <tr><td>3</td><td>Context loss — AI forgets everything</td><td>Persistent product memory (Supabase)</td></tr>
+      <tr><td>4</td><td>Architecture drift — code evolves inconsistently</td><td>Drift detection on every return brief</td></tr>
+      <tr><td>5</td><td>False confidence — AI says "done" but it's not</td><td>Acceptance criteria + return analysis</td></tr>
+      <tr><td>6</td><td>No learning — builders don't understand their product</td><td>Living docs + decision log + risk register</td></tr>
+    </table>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 2: WHAT WAS BUILT
+  ───────────────────────────────────────────── -->
+  <section id="what-done">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>What Was Built</h2>
+      <span class="badge badge-green section-tag">Current State</span>
+    </div>
+
+    <div class="callout callout-green">
+      <p><strong>Status:</strong> Phase 0 is 89% complete (8/9 tasks done). A deployable Next.js skeleton exists at <code class="inline">C:\dev\buildpilot</code> with shadcn/ui, Supabase helpers, auth middleware, and GitHub connected. Only Vercel deployment (task 0-9) remains.</p>
+    </div>
+
+    <h3>Phase Progress</h3>
+    <table>
+      <tr><th>Phase</th><th>Name</th><th>Status</th><th>Progress</th><th>Key Deliverable</th></tr>
+      <tr class="phase-done"><td>Pre</td><td>Skill Installation</td><td><span class="badge badge-green">✅ Done</span></td><td>3/3</td><td>Supabase + Next.js + Code Review skills installed</td></tr>
+      <tr class="phase-wip"><td>0</td><td>Repo Setup</td><td><span class="badge badge-amber">🔄 In Progress</span></td><td>8/9</td><td>Next.js + shadcn/ui + GitHub. Missing: Vercel deploy</td></tr>
+      <tr class="phase-todo"><td>1</td><td>Auth + Dashboard</td><td><span class="badge badge-slate">⏳ Pending</span></td><td>0/7</td><td>Supabase auth + project CRUD + dashboard UI</td></tr>
+      <tr class="phase-todo"><td>2</td><td>Wizard + Brief</td><td><span class="badge badge-slate">⏳ Pending</span></td><td>0/3</td><td>AI-powered Product Brief from idea</td></tr>
+      <tr class="phase-todo"><td>3</td><td>PRD + Architecture</td><td><span class="badge badge-slate">⏳ Pending</span></td><td>0/3</td><td>PRD + architecture generators + decision extraction</td></tr>
+      <tr class="phase-todo"><td>4</td><td>Tasks + Missions</td><td><span class="badge badge-slate">⏳ Pending</span></td><td>0/3</td><td>Task planner + Mission Brief copy UI</td></tr>
+      <tr class="phase-todo"><td>5</td><td>Return Brief Loop</td><td><span class="badge badge-slate">⏳ Pending</span></td><td>0/4</td><td>Paste return brief → AI analysis → drift detection</td></tr>
+      <tr class="phase-todo"><td>6</td><td>Living Docs</td><td><span class="badge badge-slate">⏳ Pending</span></td><td>0/3</td><td>Markdown export + landing page + full test</td></tr>
+      <tr class="phase-todo"><td>7</td><td>AI Companion</td><td><span class="badge badge-slate">⏳ Pending</span></td><td>0/6</td><td>Floating chatbot with tool routing + ingestion</td></tr>
+    </table>
+
+    <h3>What Exists in <code class="inline">C:\dev\buildpilot</code></h3>
+    <div class="card">
+      <pre style="background:transparent; padding:0; margin:0; font-size:12.5px; color: var(--slate-700); font-family: 'SF Mono', 'Fira Code', monospace; line-height:1.7;">
+buildpilot/
+├── <span style="color:var(--green)">✅</span> package.json          ← Next.js 16.2.6, React 19, shadcn deps
+├── <span style="color:var(--green)">✅</span> next.config.ts
+├── <span style="color:var(--green)">✅</span> postcss.config.mjs    ← Tailwind v4 (no tailwind.config.ts!)
+├── <span style="color:var(--green)">✅</span> tsconfig.json         ← strict: true
+├── <span style="color:var(--green)">✅</span> components.json        ← shadcn/ui config
+├── <span style="color:var(--green)">✅</span> eslint.config.mjs
+├── <span style="color:var(--amber)">📋</span> CLAUDE.md              ← Created (task 0-4)
+├── <span style="color:var(--amber)">📋</span> .env.example           ← Template created
+│
+├── app/
+│   ├── <span style="color:var(--amber)">📄</span> layout.tsx            ← Default Next.js (needs update)
+│   ├── <span style="color:var(--amber)">📄</span> page.tsx              ← Default landing (needs full rewrite)
+│   └── favicon.ico
+│
+├── components/
+│   └── <span style="color:var(--green)">✅</span> ui/                  ← shadcn/ui components installed
+│       ├── button.tsx, card.tsx, badge.tsx, input.tsx
+│       ├── label.tsx, textarea.tsx, select.tsx
+│       ├── separator.tsx, sheet.tsx, sidebar.tsx
+│       ├── tabs.tsx, toast.tsx, sonner.tsx, progress.tsx
+│
+├── lib/
+│   └── <span style="color:var(--green)">✅</span> supabase/
+│       ├── client.ts          ← createBrowserClient()
+│       ├── server.ts          ← createServerClient() + SSR
+│       └── middleware.ts      ← updateSession()
+│
+├── <span style="color:var(--green)">✅</span> middleware.ts           ← Route protection skeleton
+│
+└── node_modules/             ← All deps installed</pre>
+    </div>
+
+    <h3>Planning Documents (Separate Location)</h3>
+    <div class="card-grid">
+      <div class="card">
+        <strong>📄 prd.md</strong>
+        <p style="font-size:13px; margin-top:6px;">Full Product Requirements — 1,743 lines. Vision, scope, user stories, 18 features, DB schema, success metrics.</p>
+      </div>
+      <div class="card">
+        <strong>📄 spdd.md</strong>
+        <p style="font-size:13px; margin-top:6px;">SPDD Methodology spec — 1,070 lines. Entities, artifact hierarchy, drift detection rules, loop definition.</p>
+      </div>
+      <div class="card">
+        <strong>📄 plan.md</strong>
+        <p style="font-size:13px; margin-top:6px;">Implementation plan — 1,634 lines. 8 phases, 41 tasks, full code snippets, acceptance criteria.</p>
+      </div>
+      <div class="card">
+        <strong>📄 skills.md</strong>
+        <p style="font-size:13px; margin-top:6px;">615 lines. Priority skills to install + 5 custom BuildPilot skills to create (spdd-guardian, return-brief, etc.)</p>
+      </div>
+    </div>
+
+    <h3>Key Decisions Made</h3>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot done"></div>
+        <div class="timeline-title">Moved project to <code class="inline">C:\dev\buildpilot</code></div>
+        <div class="timeline-desc">shadcn/ui CLI crashes on Windows paths with spaces. Documents folder path has spaces → moved to C:\dev\</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot done"></div>
+        <div class="timeline-title">Tailwind CSS v4 (not v3)</div>
+        <div class="timeline-desc">Next.js 16 ships with Tailwind v4 by default. No tailwind.config.ts — configured via postcss.config.mjs. Plan references v3 patterns that need updating.</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot done"></div>
+        <div class="timeline-title">Anthropic claude-sonnet-4-5 as primary AI model</div>
+        <div class="timeline-desc">Direct Anthropic SDK + Vercel AI SDK for streaming. Not OpenAI. All prompts return structured JSON validated by Zod.</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot done"></div>
+        <div class="timeline-title">Hebrew + English bilingual UI</div>
+        <div class="timeline-desc">Hebrew for all user-facing copy (labels, buttons, headings). English for code, APIs, AI prompts, database fields.</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot done"></div>
+        <div class="timeline-title">GitHub repo: ilanmichalby/tandem-claude</div>
+        <div class="timeline-desc">Created and connected. All future work pushed here.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 3: CHALLENGES
+  ───────────────────────────────────────────── -->
+  <section id="challenges">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Challenges</h2>
+      <span class="badge badge-amber section-tag">Retrospective</span>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-icon">🛤️</div>
+      <div>
+        <div class="challenge-title">Windows Path Spaces → shadcn CLI Failure</div>
+        <div class="challenge-desc">The documents folder path (<code class="inline">C:\Users\User\OneDrive - Center For Education Technology\Documents\MindCET\Tandem - Claude Code</code>) contains spaces. The shadcn/ui CLI fails to resolve modules on paths with spaces on Windows.</div>
+        <div class="challenge-solution">✅ Resolved: Moved all code to C:\dev\buildpilot. Planning docs stay in original location.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-icon">🎨</div>
+      <div>
+        <div class="challenge-title">Tailwind v4 vs v3 API Differences</div>
+        <div class="challenge-desc">Next.js 16 installs Tailwind CSS v4 by default. Tailwind v4 has a completely different config API — no <code class="inline">tailwind.config.ts</code>, no <code class="inline">@tailwind base/components/utilities</code> imports. The plan.md was written assuming v3. Many snippets in the plan reference v3 patterns.</div>
+        <div class="challenge-solution">⚠️ Pending: All Phase 1+ CSS patterns need to be written for v4. Use <code class="inline">@import "tailwindcss"</code> in globals.css, not the v3 directives.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-icon">⚛️</div>
+      <div>
+        <div class="challenge-title">Next.js 16 / React 19 vs Planned 14/18</div>
+        <div class="challenge-desc">The original plan specified Next.js 14 and React 18. The installed version is Next.js 16.2.6 with React 19. React 19 has breaking changes in form handling and some server action patterns differ.</div>
+        <div class="challenge-solution">✅ Low risk: Core App Router patterns are compatible. Supabase SSR patterns still work. React 19 improvements (Actions, useFormStatus) are actually beneficial.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-icon">🌐</div>
+      <div>
+        <div class="challenge-title">Hebrew RTL Layout Complexity</div>
+        <div class="challenge-desc">The UI is bilingual — Hebrew labels with English technical terms. Hebrew is RTL but the technical content (code blocks, file paths, API routes) must remain LTR. shadcn/ui components are not RTL-optimized by default. The sidebar layout and flex directions need careful handling.</div>
+        <div class="challenge-solution">⚠️ Pending: Add <code class="inline">dir="rtl"</code> to root layout for Hebrew sections, use <code class="inline">dir="ltr"</code> override on code/technical elements. Test nav sidebar rendering.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-icon">🤖</div>
+      <div>
+        <div class="challenge-title">AI JSON Output Reliability</div>
+        <div class="challenge-desc">Claude must return structured JSON matching Zod schemas. Even with explicit prompting, AI models occasionally return JSON wrapped in markdown code fences, add extra explanation text, or deviate from the schema. Failures crash the service layer.</div>
+        <div class="challenge-solution">⚠️ Pending: Add JSON extraction (strip code fences), retry logic (max 2 retries), and graceful fallback messages. Consider using <code class="inline">anthropic.messages.create</code> with tool_use for guaranteed JSON.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-icon">🔑</div>
+      <div>
+        <div class="challenge-title">Supabase Environment Variables — Local vs Production</div>
+        <div class="challenge-desc">The Supabase project hasn't been created yet (Phase 1 task 1-1). The <code class="inline">.env.local</code> has placeholder values. Until a real Supabase project exists, the app will fail to start in any mode that touches auth.</div>
+        <div class="challenge-solution">⚠️ Blocker for Phase 1: Create Supabase project first, then fill .env.local and Vercel env vars.</div>
+      </div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-icon">💰</div>
+      <div>
+        <div class="challenge-title">AI API Cost at Scale</div>
+        <div class="challenge-desc">Every "Generate Brief", "Generate PRD", "Generate Architecture" call costs tokens. A full project run (brief → PRD → arch → tasks → missions → return analysis) could cost $0.50–$3.00 per project in API fees. With many users, costs compound.</div>
+        <div class="challenge-solution">⚠️ Planned: Add prompt caching for repeated context (decisions, project data). Rate limit AI endpoints per user. Show token usage in AI logs table for transparency.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 4: ALTERNATIVES CONSIDERED
+  ───────────────────────────────────────────── -->
+  <section id="alternatives">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Alternatives Considered</h2>
+      <span class="badge badge-purple section-tag">Decision Log</span>
+    </div>
+
+    <h3>Frontend Framework</h3>
+    <table>
+      <tr><th>Option</th><th>Pros</th><th>Cons</th><th>Decision</th></tr>
+      <tr class="compare-winner"><td>✅ Next.js App Router</td><td>AI app patterns, RSC, streaming, Vercel native</td><td>Complex mental model, v16 breaking changes</td><td><span class="badge badge-green">Chosen</span></td></tr>
+      <tr><td>Remix</td><td>Clean data loading, excellent DX</td><td>Smaller ecosystem, less AI SDK support</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+      <tr><td>SvelteKit</td><td>Simpler, faster DX</td><td>Smaller component ecosystem, team unfamiliarity</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+      <tr><td>Nuxt (Vue)</td><td>Good SSR</td><td>React ecosystem lock-in for AI SDKs</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+    </table>
+
+    <h3>Database + Auth</h3>
+    <table>
+      <tr><th>Option</th><th>Pros</th><th>Cons</th><th>Decision</th></tr>
+      <tr class="compare-winner"><td>✅ Supabase</td><td>Postgres + Auth + RLS + real-time, generous free tier, great DX</td><td>Vendor lock-in, cold start on free tier</td><td><span class="badge badge-green">Chosen</span></td></tr>
+      <tr><td>PlanetScale + NextAuth</td><td>Scalable MySQL, familiar</td><td>No built-in auth, two services to manage</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+      <tr><td>Firebase</td><td>Familiar, real-time native</td><td>NoSQL limits querying, vendor lock-in worse</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+      <tr><td>Neon + Clerk</td><td>Excellent Postgres, great auth</td><td>Two separate services, more config, cost</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+    </table>
+
+    <h3>AI Provider + SDK</h3>
+    <table>
+      <tr><th>Option</th><th>Pros</th><th>Cons</th><th>Decision</th></tr>
+      <tr class="compare-winner"><td>✅ Anthropic + Vercel AI SDK</td><td>Best reasoning, structured output, streaming built-in</td><td>Higher cost vs GPT-4o-mini, US-centric</td><td><span class="badge badge-green">Chosen</span></td></tr>
+      <tr><td>OpenAI GPT-4o</td><td>Familiar, function calling, cheaper</td><td>Less consistent structured output, context loss</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+      <tr><td>Google Gemini</td><td>Large context window, cheap</td><td>Less reliable for complex structured tasks</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+      <tr><td>Ollama (local)</td><td>Free, private</td><td>No production path, quality gap</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+    </table>
+
+    <h3>UI Component System</h3>
+    <table>
+      <tr><th>Option</th><th>Pros</th><th>Cons</th><th>Decision</th></tr>
+      <tr class="compare-winner"><td>✅ shadcn/ui</td><td>Copy-owned components, Radix primitives, Tailwind, accessible</td><td>More setup, shadcn CLI issues on Windows</td><td><span class="badge badge-green">Chosen</span></td></tr>
+      <tr><td>Chakra UI</td><td>Full component set, good DX</td><td>CSS-in-JS, heavier bundle, not Tailwind-native</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+      <tr><td>MUI (Material)</td><td>Comprehensive</td><td>Very opinionated design, hard to override</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+      <tr><td>Custom + Radix</td><td>Full control</td><td>Too much work for MVP, no time</td><td><span class="badge badge-slate">Rejected</span></td></tr>
+    </table>
+
+    <h3>AI Output Strategy</h3>
+    <table>
+      <tr><th>Approach</th><th>Pros</th><th>Cons</th><th>Decision</th></tr>
+      <tr class="compare-winner"><td>✅ JSON prompt + Zod parse</td><td>Simple, direct, works with all Claude versions</td><td>Occasional fence wrapping, needs strip logic</td><td><span class="badge badge-green">Chosen for MVP</span></td></tr>
+      <tr><td>Claude tool_use (structured output)</td><td>Guaranteed JSON schema, no parse errors</td><td>More complex API usage, slightly slower</td><td><span class="badge badge-amber">Upgrade path</span></td></tr>
+      <tr><td>Streaming + client parse</td><td>Great UX (progressive display)</td><td>Hard to parse partial JSON, complex error handling</td><td><span class="badge badge-slate">Phase 3+ for chat</span></td></tr>
+    </table>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 5: ARCHITECTURE & DATA FLOW
+  ───────────────────────────────────────────── -->
+  <section id="architecture">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Architecture &amp; Data Flow</h2>
+      <span class="badge badge-blue section-tag">Technical Design</span>
+    </div>
+
+    <h3>System Architecture</h3>
+    <div class="arch-diagram">
+      <div style="text-align:center; font-size:11px; color:var(--slate-500); margin-bottom:16px; font-weight:700; text-transform:uppercase; letter-spacing:1px;">USER BROWSER</div>
+      <div class="arch-layer">
+        <div class="arch-box" style="background:#eff6ff; border-color:#3b82f6; color:#1d4ed8;">Next.js App Router<br><span style="font-size:10px; font-weight:400">RSC + Client Components</span></div>
+        <div class="arch-box" style="background:#f5f3ff; border-color:#8b5cf6; color:#5b21b6;">shadcn/ui<br><span style="font-size:10px; font-weight:400">Radix + Tailwind v4</span></div>
+      </div>
+      <div class="arch-divider">Next.js API Routes — /api/ai/*</div>
+      <div class="arch-layer">
+        <div class="arch-box" style="background:#ecfdf5; border-color:#10b981; color:#065f46;">AI Service Layer<br><span style="font-size:10px; font-weight:400">lib/ai/service.ts</span></div>
+        <div class="arch-box" style="background:#ecfdf5; border-color:#10b981; color:#065f46;">Zod Schemas<br><span style="font-size:10px; font-weight:400">lib/ai/schemas.ts</span></div>
+        <div class="arch-box" style="background:#ecfdf5; border-color:#10b981; color:#065f46;">Prompt Templates<br><span style="font-size:10px; font-weight:400">lib/ai/prompts.ts</span></div>
+      </div>
+      <div class="arch-divider">External Services</div>
+      <div class="arch-layer">
+        <div class="arch-box" style="background:#fffbeb; border-color:#f59e0b; color:#92400e;">Anthropic API<br><span style="font-size:10px; font-weight:400">claude-sonnet-4-5</span></div>
+        <div class="arch-box" style="background:#fef2f2; border-color:#ef4444; color:#991b1b;">Supabase<br><span style="font-size:10px; font-weight:400">Auth + Postgres + RLS</span></div>
+        <div class="arch-box" style="background:#f0fdf4; border-color:#22c55e; color:#15803d;">Vercel<br><span style="font-size:10px; font-weight:400">Deploy + Edge</span></div>
+      </div>
+    </div>
+
+    <h3>Data Flow — AI Brief Generation</h3>
+    <div class="card">
+      <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:var(--blue); color:white; border-radius:6px; padding:4px 10px; font-weight:700; white-space:nowrap;">1. User</div>
+          <span style="color:var(--slate-400)">→</span>
+          <div style="flex:1; color:var(--slate-600)">Fills wizard form (idea, target users, constraints) → clicks "Generate"</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:var(--purple); color:white; border-radius:6px; padding:4px 10px; font-weight:700; white-space:nowrap;">2. Route</div>
+          <span style="color:var(--slate-400)">→</span>
+          <div style="flex:1; color:var(--slate-600);"><code class="inline">POST /api/ai/generate-brief</code> — verifies Supabase session, validates input</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:var(--green); color:white; border-radius:6px; padding:4px 10px; font-weight:700; white-space:nowrap;">3. Service</div>
+          <span style="color:var(--slate-400)">→</span>
+          <div style="flex:1; color:var(--slate-600);"><code class="inline">generateProductBrief(idea, answers)</code> — builds prompt, calls Anthropic</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:var(--amber); color:white; border-radius:6px; padding:4px 10px; font-weight:700; white-space:nowrap;">4. Claude</div>
+          <span style="color:var(--slate-400)">→</span>
+          <div style="flex:1; color:var(--slate-600);">Returns structured JSON → Zod validates against <code class="inline">ProductBriefSchema</code></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:var(--red); color:white; border-radius:6px; padding:4px 10px; font-weight:700; white-space:nowrap;">5. Persist</div>
+          <span style="color:var(--slate-400)">→</span>
+          <div style="flex:1; color:var(--slate-600);">Save to <code class="inline">artifacts</code> table (type='product_brief') + update project stage</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:var(--slate-600); color:white; border-radius:6px; padding:4px 10px; font-weight:700; white-space:nowrap;">6. UI</div>
+          <span style="color:var(--slate-400)">→</span>
+          <div style="flex:1; color:var(--slate-600);">Redirect to brief preview page → user approves → stage advances</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Route Map</h3>
+    <table>
+      <tr><th>Route</th><th>Type</th><th>Phase</th><th>Purpose</th></tr>
+      <tr><td><code class="inline">/</code></td><td>Page</td><td>6</td><td>Landing page</td></tr>
+      <tr><td><code class="inline">/login</code></td><td>Page</td><td>1</td><td>Sign in / sign up</td></tr>
+      <tr><td><code class="inline">/app</code></td><td>Page (protected)</td><td>1</td><td>Project dashboard</td></tr>
+      <tr><td><code class="inline">/app/projects/new</code></td><td>Page</td><td>2</td><td>Project wizard (3 steps)</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]</code></td><td>Page</td><td>5</td><td>Command center overview</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/brief</code></td><td>Page</td><td>2</td><td>Product brief viewer/editor</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/prd</code></td><td>Page</td><td>3</td><td>PRD viewer/editor</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/architecture</code></td><td>Page</td><td>3</td><td>Architecture + decisions</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/tasks</code></td><td>Page</td><td>4</td><td>Task planner</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/missions/[mid]</code></td><td>Page</td><td>4</td><td>Mission brief + copy UI</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/return</code></td><td>Page</td><td>5</td><td>Paste return brief → analysis</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/decisions</code></td><td>Page</td><td>3</td><td>Decision log</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/risks</code></td><td>Page</td><td>5</td><td>Risk register</td></tr>
+      <tr><td><code class="inline">/app/projects/[id]/docs</code></td><td>Page</td><td>6</td><td>Living docs export</td></tr>
+      <tr><td><code class="inline">POST /api/ai/generate-brief</code></td><td>API</td><td>2</td><td>Brief generation</td></tr>
+      <tr><td><code class="inline">POST /api/ai/generate-prd</code></td><td>API</td><td>3</td><td>PRD generation</td></tr>
+      <tr><td><code class="inline">POST /api/ai/generate-architecture</code></td><td>API</td><td>3</td><td>Architecture generation</td></tr>
+      <tr><td><code class="inline">POST /api/ai/generate-tasks</code></td><td>API</td><td>4</td><td>Task list generation</td></tr>
+      <tr><td><code class="inline">POST /api/ai/generate-mission</code></td><td>API</td><td>4</td><td>Mission brief generation</td></tr>
+      <tr><td><code class="inline">POST /api/ai/analyze-return</code></td><td>API</td><td>5</td><td>Return brief analysis</td></tr>
+      <tr><td><code class="inline">POST /api/ai/companion</code></td><td>API (streaming)</td><td>7</td><td>AI companion chat</td></tr>
+    </table>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 6: DATABASE SCHEMA
+  ───────────────────────────────────────────── -->
+  <section id="database">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Database Schema</h2>
+      <span class="badge badge-slate section-tag">Supabase Postgres</span>
+    </div>
+
+    <div class="callout callout-blue">
+      <p>10 tables, all with Row Level Security enabled. Users can only access their own data. All project-child tables are protected by checking ownership of the parent project.</p>
+    </div>
+
+    <div class="db-grid">
+      <div class="db-table">
+        <div class="db-table-header">profiles <span>1:1 with auth.users</span></div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">email</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">full_name</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">created_at</span><span class="db-field-type">timestamptz</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">projects <span>core entity</span></div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">user_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">name</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">current_stage</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">preferred_stack</span><span class="db-field-type">jsonb</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">artifacts <span>brief/prd/arch</span></div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">project_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">type</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">content_markdown</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">content_json</span><span class="db-field-type">jsonb</span></div>
+        <div class="db-field"><span class="db-field-name">status</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">version</span><span class="db-field-type">int</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">decisions</div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">project_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">title</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">decision</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">rationale</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">category</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">alternatives</span><span class="db-field-type">jsonb</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">tasks</div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">project_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">title</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">phase</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">priority</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">complexity</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">recommended_tool</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">status</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">acceptance_criteria</span><span class="db-field-type">jsonb</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">missions</div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">project_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">task_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">tool_name</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">mission_brief</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">status</span><span class="db-field-type">text</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">tool_sessions</div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">project_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">mission_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">tool_name</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">raw_summary</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">parsed_summary</span><span class="db-field-type">jsonb</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">risks</div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">project_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">title</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">severity</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">recommended_action</span><span class="db-field-type">text</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">open_questions</div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">project_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">question</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">category</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">answer</span><span class="db-field-type">text</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-table-header">ai_logs <span>audit trail</span></div>
+        <div class="db-field"><span class="db-field-pk">PK</span><span class="db-field-name">id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-fk">FK</span><span class="db-field-name">project_id</span><span class="db-field-type">uuid</span></div>
+        <div class="db-field"><span class="db-field-name">task_type</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">model</span><span class="db-field-type">text</span></div>
+        <div class="db-field"><span class="db-field-name">input</span><span class="db-field-type">jsonb</span></div>
+        <div class="db-field"><span class="db-field-name">output</span><span class="db-field-type">jsonb</span></div>
+        <div class="db-field"><span class="db-field-name">status</span><span class="db-field-type">text</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 7: KEY CODE SNIPPETS
+  ───────────────────────────────────────────── -->
+  <section id="code">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Key Code Snippets</h2>
+      <span class="badge badge-slate section-tag">Review These</span>
+    </div>
+
+    <h3>AI Service Layer</h3>
+    <p>The core pattern: every AI feature goes through <code class="inline">callAI()</code> — a generic wrapper that handles prompting, JSON parsing, and Zod validation. <strong>Review before Phase 2.</strong></p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">lib/ai/service.ts</span><span class="code-lang">TypeScript</span></div>
+      <pre><code class="language-typescript">import { anthropic, MODEL } from './client'
+import { ProductBriefSchema, ClarificationQuestionsSchema } from './schemas'
+import { PRODUCT_BRIEF_SYSTEM, CLARIFICATION_SYSTEM } from './prompts'
+import type { ZodSchema } from 'zod'
+
+// Generic AI caller — all AI features go through here
+async function callAI&lt;T&gt;(
+  schema: ZodSchema&lt;T&gt;,
+  systemPrompt: string,
+  userMessage: string,
+): Promise&lt;T&gt; {
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }],
+  })
+
+  const raw = response.content[0].type === 'text' ? response.content[0].text : ''
+
+  // Strip markdown code fences if Claude wraps in ```json ... ```
+  const cleaned = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
+
+  const parsed = JSON.parse(cleaned)
+  return schema.parse(parsed) // Zod throws if schema mismatch
+}
+
+export async function generateClarificationQuestions(
+  idea: string,
+  context: Record&lt;string, string&gt;
+) {
+  return callAI(
+    ClarificationQuestionsSchema,
+    CLARIFICATION_SYSTEM,
+    `Product idea: ${idea}\n\nAdditional context: ${JSON.stringify(context, null, 2)}`
+  )
+}
+
+export async function generateProductBrief(
+  idea: string,
+  answers: Record&lt;string, string&gt;
+) {
+  return callAI(
+    ProductBriefSchema,
+    PRODUCT_BRIEF_SYSTEM,
+    `Product idea: ${idea}\n\nClarification answers: ${JSON.stringify(answers, null, 2)}`
+  )
+}</code></pre>
+    </div>
+
+    <h3>Zod Schemas — AI Output Contracts</h3>
+    <p>Every AI response is validated by a Zod schema. These are the contracts between Claude's output and our database. <strong>Extend these for each new AI feature.</strong></p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">lib/ai/schemas.ts</span><span class="code-lang">TypeScript</span></div>
+      <pre><code class="language-typescript">import { z } from 'zod'
+
+export const ProductBriefSchema = z.object({
+  product_name: z.string(),
+  one_liner: z.string(),
+  target_users: z.array(z.string()),
+  problem: z.string(),
+  solution: z.string(),
+  mvp_scope: z.array(z.string()),
+  non_goals: z.array(z.string()),
+  success_criteria: z.array(z.string()),
+  risks: z.array(z.string()),
+  open_questions: z.array(z.string()),
+})
+
+export const ReturnAnalysisSchema = z.object({
+  classification: z.enum([
+    'completed_aligned', 'completed_with_risks',
+    'partially_completed', 'blocked', 'drift_detected', 'unclear'
+  ]),
+  completed_work: z.array(z.string()),
+  new_decisions: z.array(z.object({
+    title: z.string(),
+    decision: z.string(),
+    rationale: z.string(),
+    category: z.string(),
+  })),
+  risks: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    severity: z.enum(['low', 'medium', 'high', 'critical']),
+    category: z.string(),
+  })),
+  drift_signals: z.array(z.object({
+    type: z.string(),
+    description: z.string(),
+    severity: z.enum(['low', 'medium', 'high', 'critical']),
+  })),
+  recommended_next_step: z.string(),
+  task_status_recommendation: z.enum(['approved', 'needs_review', 'send_back', 'blocked']),
+  requires_user_review: z.boolean(),
+})
+
+export type ProductBrief = z.infer&lt;typeof ProductBriefSchema&gt;
+export type ReturnAnalysis = z.infer&lt;typeof ReturnAnalysisSchema&gt;</code></pre>
+    </div>
+
+    <h3>Supabase Server Client (SSR-safe)</h3>
+    <p>This is the pattern for all server-side Supabase access. Uses cookies for session management — critical for Next.js App Router. <strong>Never use the browser client in Server Components.</strong></p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">lib/supabase/server.ts</span><span class="code-lang">TypeScript</span></div>
+      <pre><code class="language-typescript">import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import type { Database } from '@/types/database'
+
+export async function createClient() {
+  const cookieStore = await cookies()
+
+  return createServerClient&lt;Database&gt;(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options))
+          } catch {
+            // setAll called from a Server Component — cookies() is read-only
+            // Safe to ignore — middleware handles session refresh
+          }
+        },
+      },
+    }
+  )
+}
+
+// Usage in a Server Component:
+// const supabase = await createClient()
+// const { data: { user } } = await supabase.auth.getUser()
+// const { data: projects } = await supabase.from('projects').select('*')</code></pre>
+    </div>
+
+    <h3>Return Analysis API Route — the Heart of SPDD</h3>
+    <p>When a user pastes their return brief from Cursor/v0/Claude Code, this route: parses it, extracts decisions + risks, updates the database, and advances the project stage. <strong>Most critical route in the product.</strong></p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">app/api/ai/analyze-return/route.ts</span><span class="code-lang">TypeScript</span></div>
+      <pre><code class="language-typescript">import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { analyzeReturnBrief } from '@/lib/ai/service'
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { projectId, missionId, rawSummary } = await req.json()
+
+  // Fetch project context for the AI
+  const [projectRes, decisionsRes, tasksRes] = await Promise.all([
+    supabase.from('projects').select('*').eq('id', projectId).single(),
+    supabase.from('decisions').select('title, decision').eq('project_id', projectId).eq('status', 'active').limit(10),
+    supabase.from('tasks').select('title, acceptance_criteria').eq('id', /* current task */ missionId).single(),
+  ])
+
+  const analysis = await analyzeReturnBrief(rawSummary, {
+    project: projectRes.data,
+    decisions: decisionsRes.data,
+    task: tasksRes.data,
+  })
+
+  // Auto-save decisions
+  if (analysis.new_decisions.length > 0) {
+    await supabase.from('decisions').insert(
+      analysis.new_decisions.map(d => ({ ...d, project_id: projectId }))
+    )
+  }
+
+  // Auto-save risks
+  if (analysis.risks.length > 0) {
+    await supabase.from('risks').insert(
+      analysis.risks.map(r => ({ ...r, project_id: projectId, source: 'return_brief' }))
+    )
+  }
+
+  // Save tool session record
+  await supabase.from('tool_sessions').insert({
+    project_id: projectId,
+    mission_id: missionId,
+    raw_summary: rawSummary,
+    parsed_summary: analysis,
+    status: 'analyzed',
+  })
+
+  // Update mission status
+  await supabase.from('missions')
+    .update({ status: 'returned', returned_at: new Date().toISOString() })
+    .eq('id', missionId)
+
+  return NextResponse.json({ analysis })
+}</code></pre>
+    </div>
+
+    <h3>Companion Context Builder</h3>
+    <p>The AI Companion always knows your project state. This function builds the context string injected into every companion message. <strong>Keep this fast — it runs on every chat message.</strong></p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">lib/ai/companion/context.ts</span><span class="code-lang">TypeScript</span></div>
+      <pre><code class="language-typescript">import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
+
+export async function buildProjectContext(
+  projectId: string,
+  supabase: SupabaseClient&lt;Database&gt;
+): Promise&lt;string&gt; {
+  // Parallel fetch for performance
+  const [project, artifacts, decisions, tasks, openRisks] = await Promise.all([
+    supabase.from('projects').select('name, current_stage, description').eq('id', projectId).single(),
+    supabase.from('artifacts').select('type, title, status').eq('project_id', projectId),
+    supabase.from('decisions').select('title, decision, category').eq('project_id', projectId).eq('status', 'active').limit(8),
+    supabase.from('tasks').select('title, status, recommended_tool, phase').eq('project_id', projectId).order('created_at').limit(15),
+    supabase.from('risks').select('title, severity').eq('project_id', projectId).eq('status', 'open').eq('severity', 'high').limit(3),
+  ])
+
+  const nextTask = tasks.data?.find(t => t.status === 'not_started' || t.status === 'ready')
+
+  return `
+## Project: ${project.data?.name}
+Stage: ${project.data?.current_stage}
+Description: ${project.data?.description}
+
+## Artifacts (${artifacts.data?.length} total)
+${artifacts.data?.map(a => `- ${a.type} → ${a.title} [${a.status}]`).join('\n') ?? 'None yet'}
+
+## Key Decisions
+${decisions.data?.map(d => `- [${d.category}] ${d.title}: ${d.decision}`).join('\n') ?? 'No decisions recorded'}
+
+## Tasks
+${tasks.data?.map(t => `- ${t.title} [${t.status}] → tool: ${t.recommended_tool}`).join('\n') ?? 'No tasks yet'}
+
+## Next Task
+${nextTask ? `${nextTask.title} (use ${nextTask.recommended_tool})` : 'All tasks complete or none generated yet'}
+
+## Open High-Risk Issues
+${openRisks.data?.map(r => `- ${r.title} [${r.severity}]`).join('\n') ?? 'None'}
+  `.trim()
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 8: UI MOCKUPS
+  ───────────────────────────────────────────── -->
+  <section id="mockups">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>UI Mockups</h2>
+      <span class="badge badge-purple section-tag">Design</span>
+    </div>
+
+    <h3>Project Dashboard</h3>
+    <p>The main view after login. Shows all projects as cards with stage, last updated, and quick CTA. Empty state has onboarding CTA.</p>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+        <div class="browser-url">buildpilot.app/app</div>
+      </div>
+      <div class="browser-content">
+        <div class="mock-sidebar">
+          <div class="mock-sidebar-logo">🧭 BuildPilot</div>
+          <div class="mock-nav-item active">📁 הפרויקטים שלי</div>
+          <div class="mock-nav-item">⚙️ הגדרות</div>
+          <div style="margin-top:auto; padding-top:20px;">
+            <div class="mock-nav-item" style="font-size:11px; color:var(--slate-500);">mindcetdev@gmail.com</div>
+          </div>
+        </div>
+        <div class="mock-main">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div class="mock-heading">הפרויקטים שלי</div>
+            <div class="mock-btn">+ פרויקט חדש</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="mock-card">
+              <div class="mock-card-title">🛒 Market Finder App</div>
+              <div class="mock-card-sub">אפליקציה למציאת שווקים מקומיים</div>
+              <div style="margin-top:8px; display:flex; gap:6px; align-items:center;">
+                <span class="mock-badge blue">PRD Draft</span>
+                <span style="font-size:10px; color:var(--slate-400);">עודכן לפני 2 ימים</span>
+              </div>
+              <div style="margin-top:8px; font-size:11px; color:var(--blue); font-weight:600; cursor:default;">→ המשך: אשר PRD</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-title">📚 LernBot</div>
+              <div class="mock-card-sub">בוט לימוד אישי עם AI</div>
+              <div style="margin-top:8px; display:flex; gap:6px; align-items:center;">
+                <span class="mock-badge green">Mission Sent</span>
+                <span style="font-size:10px; color:var(--slate-400);">עודכן היום</span>
+              </div>
+              <div style="margin-top:8px; font-size:11px; color:var(--amber); font-weight:600; cursor:default;">⏳ ממתין לסיכום כלי</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Project Wizard — Step 2: AI Clarification</h3>
+    <p>After the user inputs their raw idea, Claude generates up to 5 clarifying questions. The user answers them, and then the brief is generated.</p>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+        <div class="browser-url">buildpilot.app/app/projects/new</div>
+      </div>
+      <div class="browser-content" style="min-height:360px;">
+        <div class="mock-sidebar">
+          <div class="mock-sidebar-logo">🧭 BuildPilot</div>
+          <div style="color:var(--slate-400); font-size:12px; margin-top:16px; padding:0 8px;">
+            <div style="margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:var(--slate-600);">●</span> שלב 1: הרעיון ✓</div>
+            <div style="margin-bottom:8px; display:flex; align-items:center; gap:6px; color:var(--blue);"><span>●</span> שלב 2: בירור</div>
+            <div style="display:flex; align-items:center; gap:6px; color:var(--slate-600);"><span>○</span> שלב 3: תדריך</div>
+          </div>
+        </div>
+        <div class="mock-main">
+          <div class="mock-heading">שאלות בירור מ-AI</div>
+          <div style="font-size:12px; color:var(--slate-500); margin-bottom:16px;">ענה על השאלות כדי לייצר תדריך מדויק יותר</div>
+          <div class="mock-card" style="border-left: 3px solid var(--blue);">
+            <div style="font-size:12px; font-weight:600; color:var(--slate-700); margin-bottom:6px;">1. מי המשתמש העיקרי? מה ניסיונו הטכנולוגי?</div>
+            <textarea class="mock-textarea" placeholder="לדוגמה: מנהלי שווקים בגיל 40+ שמתמצאים בסמארטפון..."></textarea>
+          </div>
+          <div class="mock-card" style="border-left: 3px solid var(--blue);">
+            <div style="font-size:12px; font-weight:600; color:var(--slate-700); margin-bottom:6px;">2. מה הפעולה הראשונה שמשתמש יעשה לאחר ההרשמה?</div>
+            <textarea class="mock-textarea" placeholder="הפעולה הראשונה..."></textarea>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <div class="mock-btn" style="background:var(--slate-200); color:var(--slate-700);">← חזור</div>
+            <div class="mock-btn">צור תדריך ←</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Mission Brief — Copy &amp; Go</h3>
+    <p>The Mission Brief is what the user copies and pastes into Cursor / Claude Code / v0. It must be complete, self-contained, and ready to copy with one click.</p>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+        <div class="browser-url">buildpilot.app/app/projects/abc123/missions/m456</div>
+      </div>
+      <div class="browser-content" style="min-height:380px;">
+        <div class="mock-sidebar">
+          <div class="mock-sidebar-logo">🧭 LernBot</div>
+          <div class="mock-nav-item">📋 סקירה</div>
+          <div class="mock-nav-item">📄 תדריך</div>
+          <div class="mock-nav-item">📋 PRD</div>
+          <div class="mock-nav-item">🏗 ארכיטקטורה</div>
+          <div class="mock-nav-item">✅ משימות</div>
+          <div class="mock-nav-item active">📤 משימות שנשלחו</div>
+          <div class="mock-nav-item">📥 החזרה</div>
+        </div>
+        <div class="mock-main">
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
+            <div class="mock-heading" style="margin:0;">משימה: Auth Flow Setup</div>
+            <span class="mock-badge amber">Draft</span>
+          </div>
+          <div style="font-size:12px; color:var(--slate-500); margin-bottom:16px;">כלי מומלץ: <strong>Claude Code</strong> — ארכיטקטורה + middleware מורכב</div>
+          <div style="background:var(--slate-900); border-radius:8px; padding:14px; color:var(--slate-300); font-size:11.5px; font-family:monospace; line-height:1.8; margin-bottom:12px; max-height:180px; overflow-y:auto;">
+            <div style="color:#7dd3fc; font-weight:700;"># Mission Brief — Auth Flow Setup</div>
+            <div style="margin-top:8px;"><span style="color:#86efac;">**Product:**</span> LernBot — AI-powered personal learning bot</div>
+            <div><span style="color:#86efac;">**Stage:**</span> architecture_approved → building auth layer</div>
+            <div style="margin-top:8px;"><span style="color:#fbbf24;">**Your Task:**</span> Implement Supabase Auth with email/password, route protection via middleware.ts, and redirect logic.</div>
+            <div style="margin-top:8px;"><span style="color:#c084fc;">**Constraints:**</span> Use @supabase/ssr · No NextAuth · Hebrew error messages · RLS must be enabled</div>
+            <div style="margin-top:8px;"><span style="color:#f87171;">**Do NOT:**</span> add OAuth (future scope) · add social login · bypass RLS</div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div class="mock-btn">📋 העתק משימה</div>
+            <div class="mock-btn" style="background:var(--slate-200); color:var(--slate-700);">↩️ פרומפט החזרה</div>
+            <div class="mock-btn" style="background:var(--green); margin-left:auto;">✅ סמן כנשלח</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Return Brief Analysis</h3>
+    <p>After the user finishes a Cursor/v0 session, they paste the AI-generated return summary here. BuildPilot analyzes it and auto-saves decisions + risks.</p>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+        <div class="browser-url">buildpilot.app/app/projects/abc123/return</div>
+      </div>
+      <div class="browser-content" style="min-height:380px;">
+        <div class="mock-sidebar">
+          <div class="mock-sidebar-logo">🧭 LernBot</div>
+          <div class="mock-nav-item">📋 סקירה</div>
+          <div class="mock-nav-item active">📥 החזרה</div>
+        </div>
+        <div class="mock-main">
+          <div class="mock-heading">הדבק סיכום כלי</div>
+          <div style="font-size:12px; color:var(--slate-500); margin-bottom:12px;">הדבק כאן את הסיכום שקיבלת מהכלי (Cursor, Claude Code, v0...)</div>
+          <textarea class="mock-textarea" style="height:120px; font-size:11px; font-family:monospace;" placeholder="## Completed Work&#10;- Implemented Supabase auth with email/password&#10;- Created middleware.ts for route protection&#10;&#10;## Decisions Made&#10;- Used createServerClient for RSC, createBrowserClient for client..."></textarea>
+          <div class="mock-btn" style="margin-bottom:16px;">🔍 נתח סיכום</div>
+
+          <div style="background:var(--green-light); border:1px solid var(--green); border-radius:8px; padding:14px;">
+            <div style="font-size:13px; font-weight:700; color:#065f46; margin-bottom:10px;">✅ ניתוח הושלם — completed_aligned</div>
+            <div style="font-size:12px; color:var(--slate-600); margin-bottom:8px;"><strong>עבודה שהושלמה:</strong></div>
+            <div style="font-size:11px; color:var(--slate-500); margin-bottom:8px;">• auth middleware פועל ·  redirect לוגיק ·  email/password flow</div>
+            <div style="font-size:12px; color:var(--slate-600); margin-bottom:4px;"><strong>2 החלטות נשמרו אוטומטית ✓</strong></div>
+            <div style="font-size:12px; color:var(--slate-600);"><strong>1 סיכון נרשם ⚠️</strong> — session expiry handling לא מומש</div>
+            <div class="mock-btn" style="margin-top:12px;">המשך לשלב הבא →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>AI Companion — Floating Panel</h3>
+    <p>A context-aware chat assistant available on every page. Knows your project state, recommends tools, generates mission prompts, and ingests return summaries.</p>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+        <div class="browser-url">buildpilot.app/app/projects/abc123</div>
+      </div>
+      <div class="browser-content" style="min-height:400px; position:relative;">
+        <div class="mock-sidebar">
+          <div class="mock-sidebar-logo">🧭 LernBot</div>
+          <div class="mock-nav-item active">📋 סקירה</div>
+        </div>
+        <div class="mock-main" style="position:relative;">
+          <div class="mock-heading">מרכז פיקוד — LernBot</div>
+          <div style="opacity:0.5;">
+            <div class="mock-card"><div class="mock-card-title">שלב הבא: Generate Task List</div></div>
+          </div>
+          <!-- Companion Panel Overlay -->
+          <div style="position:absolute; right:0; top:0; bottom:0; width:280px; background:white; border-left:1px solid var(--slate-200); display:flex; flex-direction:column; box-shadow:-4px 0 16px rgba(0,0,0,.08);">
+            <div style="padding:12px 14px; border-bottom:1px solid var(--slate-200); display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:13px; font-weight:700; color:var(--slate-800);">🤖 Tandem Companion</div>
+                <div style="font-size:10px; color:var(--slate-500);">LernBot — architecture_approved</div>
+              </div>
+              <div style="font-size:16px; color:var(--slate-400); cursor:default;">✕</div>
+            </div>
+            <div style="flex:1; padding:12px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+              <div style="background:var(--slate-100); border-radius:8px 8px 8px 2px; padding:10px; font-size:12px; color:var(--slate-700); line-height:1.5;">
+                שלום! ה-PRD וארכיטקטורה אושרו ✅<br><br>השלב הבא: <strong>צור רשימת משימות</strong>. אני ממליץ להשתמש ב-<strong>Claude Code</strong> לשלב זה.
+                <div style="margin-top:8px; font-size:11px; color:var(--blue); font-weight:600; cursor:default;">📋 צור פרומפט משימה</div>
+              </div>
+              <div style="background:var(--blue); border-radius:8px 8px 2px 8px; padding:10px; font-size:12px; color:white; align-self:flex-end; max-width:80%;">
+                איזה כלי לוקח אדריסת משימות?
+              </div>
+              <div style="background:var(--slate-100); border-radius:8px 8px 8px 2px; padding:10px; font-size:12px; color:var(--slate-700); line-height:1.5;">
+                ל-<strong>task generation</strong> — Claude Code. הוא מבין את כל הקונטקסט.<br><br>ל-<strong>UI components</strong> — v0.<br>ל-<strong>full-stack features</strong> — Lovable.
+              </div>
+            </div>
+            <div style="padding:10px; border-top:1px solid var(--slate-200);">
+              <input class="mock-input" style="margin:0; font-size:11px;" placeholder="שאל שאלה...">
+              <div style="display:flex; gap:6px; margin-top:6px;">
+                <div style="font-size:10px; background:var(--slate-100); border-radius:4px; padding:3px 6px; color:var(--slate-600); cursor:default;">📋 Mission Prompt</div>
+                <div style="font-size:10px; background:var(--slate-100); border-radius:4px; padding:3px 6px; color:var(--slate-600); cursor:default;">↩️ Return Prompt</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Floating button (behind panel) -->
+        <div style="position:absolute; bottom:16px; right:296px; background:var(--blue); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 12px rgba(59,130,246,.4);">💬</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 9: PHASE-BY-PHASE PLAN
+  ───────────────────────────────────────────── -->
+  <section id="phases">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>Phase-by-Phase Plan</h2>
+      <span class="badge badge-green section-tag">Implementation</span>
+    </div>
+
+    <div class="callout callout-amber">
+      <p><strong>Critical path:</strong> 0-9 (Vercel) → 1-1 (Supabase project) → 1-2 (DB schema) → 1-4 (Auth) → 2-1 (AI service) → 2-3 (Wizard). These are the blockers. Everything else is sequential after each phase.</p>
+    </div>
+
+    <h3>Phase 0 — Repo Setup <span class="badge badge-amber" style="margin-left:8px;">1 task left</span></h3>
+    <table>
+      <tr><th>Task</th><th>Status</th><th>Action</th></tr>
+      <tr><td>0-1: Bootstrap Next.js</td><td><span class="badge badge-green">✅ Done</span></td><td>Next.js 16.2.6 at C:\dev\buildpilot</td></tr>
+      <tr><td>0-2: Add shadcn/ui</td><td><span class="badge badge-green">✅ Done</span></td><td>All components installed</td></tr>
+      <tr><td>0-3: Install dependencies</td><td><span class="badge badge-green">✅ Done</span></td><td>Supabase, AI SDK, Zod, etc.</td></tr>
+      <tr><td>0-4: Create CLAUDE.md</td><td><span class="badge badge-green">✅ Done</span></td><td>Project instructions file</td></tr>
+      <tr><td>0-5: Environment variables</td><td><span class="badge badge-green">✅ Done</span></td><td>.env.example created</td></tr>
+      <tr><td>0-6: Supabase client helpers</td><td><span class="badge badge-green">✅ Done</span></td><td>lib/supabase/{client,server,middleware}.ts</td></tr>
+      <tr><td>0-7: Auth middleware</td><td><span class="badge badge-green">✅ Done</span></td><td>middleware.ts in root</td></tr>
+      <tr><td>0-8: GitHub repo</td><td><span class="badge badge-green">✅ Done</span></td><td>ilanmichalby/tandem-claude</td></tr>
+      <tr style="background:var(--amber-light);"><td>0-9: Vercel deployment</td><td><span class="badge badge-amber">⏳ Next</span></td><td>Run <code class="inline">npx vercel</code> → add env vars in dashboard</td></tr>
+    </table>
+
+    <h3>Phase 1 — Auth + Dashboard</h3>
+    <table>
+      <tr><th>Task</th><th>Files to Create</th><th>Key Note</th></tr>
+      <tr><td>1-1: Create Supabase project</td><td>Update .env.local</td><td>Get URL + anon key from supabase.com dashboard</td></tr>
+      <tr><td>1-2: Database schema + RLS</td><td>supabase/migrations/*.sql</td><td>Run both SQL files in Supabase SQL editor</td></tr>
+      <tr><td>1-3: Generate TypeScript types</td><td>types/database.ts, types/index.ts</td><td>Run <code class="inline">npx supabase gen types typescript</code></td></tr>
+      <tr><td>1-4: Auth pages</td><td>app/(auth)/layout.tsx, app/(auth)/login/page.tsx</td><td>Hebrew labels, email/password only, no OAuth</td></tr>
+      <tr><td>1-5: Route protection</td><td>Update middleware.ts</td><td>Redirect /app/* to /login if no session</td></tr>
+      <tr><td>1-6: Project dashboard</td><td>app/(app)/layout.tsx, app/(app)/app/page.tsx + ProjectCard, EmptyState</td><td>Hebrew copy, grid layout</td></tr>
+      <tr><td>1-7: Project CRUD</td><td>app/(app)/app/projects/new/page.tsx, [projectId]/page.tsx</td><td>Basic form + RLS-protected fetch</td></tr>
+    </table>
+
+    <h3>Phase 2 — Wizard + Product Brief</h3>
+    <table>
+      <tr><th>Task</th><th>Files</th><th>Key Note</th></tr>
+      <tr><td>2-1: AI service layer</td><td>lib/ai/{client,schemas,prompts,service}.ts</td><td>See code snippet above — add JSON fence stripping</td></tr>
+      <tr><td>2-2: AI API routes</td><td>app/api/ai/generate-brief/route.ts, generate-clarification/route.ts</td><td>Auth check first, save to artifacts table</td></tr>
+      <tr><td>2-3: Project wizard UI</td><td>components/wizard/*.tsx, update app/(app)/app/projects/new/page.tsx</td><td>3 steps: Idea → Clarify → Brief preview</td></tr>
+    </table>
+
+    <h3>Phases 3–7 — Summary</h3>
+    <table>
+      <tr><th>Phase</th><th>Duration (est.)</th><th>Critical Deliverable</th><th>New AI Schemas</th></tr>
+      <tr><td>Phase 3: PRD + Arch</td><td>3–4 sessions</td><td>PRD + Architecture generated, decisions auto-saved</td><td>PRDSchema, ArchitectureSchema</td></tr>
+      <tr><td>Phase 4: Tasks + Missions</td><td>3–4 sessions</td><td>Task list generated, Mission Brief copyable</td><td>TaskListSchema, MissionBriefSchema</td></tr>
+      <tr><td>Phase 5: Return Loop</td><td>4–5 sessions</td><td>Full SPDD loop working end-to-end</td><td>ReturnAnalysisSchema</td></tr>
+      <tr><td>Phase 6: Living Docs</td><td>2–3 sessions</td><td>Docs export + landing page + full test</td><td>None new</td></tr>
+      <tr><td>Phase 7: Companion</td><td>5–6 sessions</td><td>Floating chat + tool routing + ingestion</td><td>IngestionSchema</td></tr>
+    </table>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       SECTION 10: RISKS & OPEN QUESTIONS
+  ───────────────────────────────────────────── -->
+  <section id="risks">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>Risks &amp; Open Questions</h2>
+      <span class="badge badge-red section-tag">Watch These</span>
+    </div>
+
+    <h3>Current Risks</h3>
+    <table>
+      <tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr>
+      <tr class="risk-critical"><td>Tailwind v4 breaks plan.md CSS snippets</td><td><span class="badge badge-red">HIGH</span></td><td>Rewrite CSS for v4 API when implementing each phase. Use <code class="inline">@import "tailwindcss"</code> not directives.</td></tr>
+      <tr class="risk-critical"><td>No Supabase project yet — env vars are stubs</td><td><span class="badge badge-red">BLOCKER</span></td><td>Create Supabase project as first step of Phase 1.</td></tr>
+      <tr class="risk-high"><td>AI JSON output unreliable (Claude wraps in fences)</td><td><span class="badge badge-amber">MEDIUM</span></td><td>Strip fences in callAI(). Add retry on parse failure. Log to ai_logs table.</td></tr>
+      <tr class="risk-high"><td>Hebrew RTL breaks layout in some shadcn/ui components</td><td><span class="badge badge-amber">MEDIUM</span></td><td>Test nav, sheet, tabs in RTL early. Use dir="ltr" on code blocks.</td></tr>
+      <tr class="risk-medium"><td>API cost per project run ($0.50–$3.00)</td><td><span class="badge badge-blue">LOW NOW</span></td><td>Add prompt caching for Phase 3+. Rate limit per user. Monitor with ai_logs.</td></tr>
+      <tr class="risk-medium"><td>Return brief parsing accuracy — AI may miss decisions</td><td><span class="badge badge-amber">MEDIUM</span></td><td>Show parsed output to user before saving. "Confirm and save" step, not auto-save blind.</td></tr>
+    </table>
+
+    <h3>Open Questions</h3>
+    <table>
+      <tr><th>#</th><th>Question</th><th>Impact</th><th>Status</th></tr>
+      <tr><td>1</td><td>Email confirmation required for signup in dev?</td><td>Blocks testing auth flow</td><td><span class="badge badge-amber">Disable in dev, enable in prod</span></td></tr>
+      <tr><td>2</td><td>Stream AI responses or wait for full response?</td><td>UX feel of generation</td><td><span class="badge badge-slate">Full response for MVP. Streaming in Phase 7 companion.</span></td></tr>
+      <tr><td>3</td><td>Should wizard create a draft project immediately on Step 1?</td><td>Data model + navigation</td><td><span class="badge badge-red">Decide in Phase 2</span></td></tr>
+      <tr><td>4</td><td>Artifact versioning — keep all versions or just latest?</td><td>DB storage + UX</td><td><span class="badge badge-slate">version int column exists. Keep latest for MVP, add history in v2.</span></td></tr>
+      <tr><td>5</td><td>Can users edit generated PRD/architecture directly?</td><td>Editor component complexity</td><td><span class="badge badge-slate">Yes — use @uiw/react-md-editor with save button.</span></td></tr>
+      <tr><td>6</td><td>Monetization model?</td><td>Rate limiting + feature gating</td><td><span class="badge badge-red">Not decided — ship free MVP first</span></td></tr>
+    </table>
+
+    <div class="callout callout-green" style="margin-top:32px;">
+      <p><strong>Ready to start?</strong> The next concrete action is <strong>Task 0-9: Deploy to Vercel</strong>. Run <code class="inline">npx vercel</code> from <code class="inline">C:\dev\buildpilot</code>, then move to Phase 1 by creating the Supabase project.</p>
+    </div>
+  </section>
+
+  <hr>
+  <div style="text-align:center; color:var(--slate-400); font-size:12px; padding:20px 0 40px;">
+    BuildPilot — Implementation Overview · Generated May 2026 · mindcetdev@gmail.com
+  </div>
+
+</main>
+
+<script>
+  hljs.highlightAll();
+
+  // Active nav highlight on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
