@@ -16,6 +16,9 @@ Hebrew labels/copy, English technical terms and AI prompts.
 - Hebrew for: page titles, nav items, button labels, form labels, error messages
 - English for: code, API routes, console logs, database fields, AI prompts, variable names
 
+## Before Any UI Work
+Read `DESIGN.md` at the project root first. It defines Tandem's visual language (Vercel structural skeleton + Tandem overrides for palette, typography, radius). The "Tandem Overrides" section at the top wins over the inherited Vercel section in any conflict.
+
 ## Before Implementing Anything
 1. Check plan.md (project root) for current phase
 2. Check prd.md for feature requirements
