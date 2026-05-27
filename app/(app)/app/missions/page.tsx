@@ -91,10 +91,10 @@ const missions = [
 ]
 
 const statusColors = {
-  "in-progress": "bg-amber-500",
+  "in-progress": "bg-warning",
   "pending-review": "bg-primary",
   "queued": "bg-muted-foreground",
-  "completed": "bg-emerald-500"
+  "completed": "bg-success"
 }
 
 const statusLabels = {
@@ -222,7 +222,7 @@ export default function MissionsPage() {
                   <CardContent className="space-y-6">
                     <div>
                       <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                        <AlertCircle className="h-4 w-4 text-warning" />
                         אסור לעשות
                       </h4>
                       <ul className="space-y-1.5">
@@ -251,7 +251,7 @@ export default function MissionsPage() {
 
                     <div>
                       <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                         קריטריוני קבלה
                       </h4>
                       <ul className="space-y-1.5">

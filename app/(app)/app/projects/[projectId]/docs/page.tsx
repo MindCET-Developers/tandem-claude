@@ -359,9 +359,9 @@ export default function DocsPage() {
                     <span className="text-muted-foreground capitalize">{sev}</span>
                     <Badge
                       className={`text-[10px] ${
-                        sev === 'critical' ? 'bg-red-100 text-red-800' :
+                        sev === 'critical' ? 'bg-error/10 text-error' :
                         sev === 'high'     ? 'bg-orange-100 text-orange-800' :
-                        sev === 'medium'   ? 'bg-amber-100 text-amber-800' :
+                        sev === 'medium'   ? 'bg-warning/10 text-warning' :
                                             'bg-slate-100 text-slate-700'
                       }`}
                     >
@@ -384,7 +384,7 @@ export default function DocsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <pre className="bg-slate-900 text-slate-200 rounded-lg p-4 text-xs font-mono whitespace-pre-wrap overflow-x-auto max-h-[500px] overflow-y-auto leading-relaxed" dir="ltr">
+          <pre className="bg-code-bg text-code-text rounded-lg p-4 text-xs font-mono whitespace-pre-wrap overflow-x-auto max-h-[500px] overflow-y-auto leading-relaxed" dir="ltr">
             {markdown || '(אין תוכן לייצוא עדיין — צור artifacts תחילה)'}
           </pre>
         </CardContent>

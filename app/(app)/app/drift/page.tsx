@@ -91,7 +91,7 @@ const alignmentScore = {
 
 const severityColors = {
   high: "text-destructive border-destructive/30 bg-destructive/5",
-  medium: "text-amber-500 border-amber-500/30 bg-amber-500/5",
+  medium: "text-warning border-warning/30 bg-warning/5",
   low: "text-muted-foreground border-border/50 bg-muted/30"
 }
 
@@ -173,9 +173,9 @@ export default function DriftPage() {
                 {alignmentScore.categories.map((cat) => (
                   <div key={cat.name} className="text-center">
                     <div className={`mx-auto w-12 h-12 rounded-lg flex items-center justify-center mb-2 ${
-                      cat.score >= 90 ? "bg-emerald-500/10 text-emerald-500" :
+                      cat.score >= 90 ? "bg-success/10 text-success" :
                       cat.score >= 80 ? "bg-primary/10 text-primary" :
-                      "bg-amber-500/10 text-amber-500"
+                      "bg-warning/10 text-warning"
                     }`}>
                       <cat.icon className="h-5 w-5" />
                     </div>
@@ -217,7 +217,7 @@ export default function DriftPage() {
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-medium text-sm leading-snug">{alert.title}</h3>
                           {alert.status === "resolved" && (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                           )}
                         </div>
                         <div className="mt-2 flex items-center gap-2 flex-wrap">
@@ -246,7 +246,7 @@ export default function DriftPage() {
                         <Badge
                           className={`text-xs ${
                             selectedAlert.severity === "high" ? "bg-destructive text-white" :
-                            selectedAlert.severity === "medium" ? "bg-amber-500 text-white" :
+                            selectedAlert.severity === "medium" ? "bg-warning text-white" :
                             "bg-muted text-muted-foreground"
                           }`}
                         >
@@ -256,7 +256,7 @@ export default function DriftPage() {
                           {selectedAlert.category}
                         </Badge>
                         {selectedAlert.status === "resolved" && (
-                          <Badge className="bg-emerald-500 text-white text-xs">
+                          <Badge className="bg-success text-white text-xs">
                             נפתר
                           </Badge>
                         )}
@@ -268,8 +268,8 @@ export default function DriftPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
-                      <div className="flex items-center gap-2 mb-2 text-emerald-500">
+                    <div className="rounded-lg border border-success/30 bg-success/5 p-4">
+                      <div className="flex items-center gap-2 mb-2 text-success">
                         <FileText className="h-4 w-4" />
                         <span className="text-xs font-medium uppercase tracking-wide">צפוי (מפרט)</span>
                       </div>

@@ -98,7 +98,7 @@ function MissionMarkdownDisplay({
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
             Return Prompt — הדבק אחרי המשימה
           </p>
-          <pre className="bg-slate-900 text-slate-200 p-4 rounded-lg text-xs font-mono whitespace-pre-wrap overflow-x-auto" dir="ltr">
+          <pre className="bg-code-bg text-code-text p-4 rounded-lg text-xs font-mono whitespace-pre-wrap overflow-x-auto" dir="ltr">
             {returnPrompt}
           </pre>
         </div>

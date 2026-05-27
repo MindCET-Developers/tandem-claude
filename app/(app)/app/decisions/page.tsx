@@ -190,13 +190,13 @@ export default function DecisionsPage() {
                       <div className="flex items-start gap-3">
                         <div className={`mt-0.5 h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
                           decision.status === "approved"
-                            ? "border-emerald-500 bg-emerald-500/10"
-                            : "border-amber-500 bg-amber-500/10"
+                            ? "border-success bg-success/10"
+                            : "border-warning bg-warning/10"
                         }`}>
                           {decision.status === "approved" ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                           ) : (
-                            <div className="h-2 w-2 rounded-full bg-amber-500" />
+                            <div className="h-2 w-2 rounded-full bg-warning" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -231,8 +231,8 @@ export default function DecisionsPage() {
                         <Badge
                           className={`text-xs ${
                             selectedDecision.status === "approved"
-                              ? "bg-emerald-500 text-white"
-                              : "bg-amber-500 text-white"
+                              ? "bg-success text-white"
+                              : "bg-warning text-white"
                           }`}
                         >
                           {selectedDecision.status === "approved" ? "מאושר" : "ממתין"}

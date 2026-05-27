@@ -45,6 +45,15 @@
   --chart-4: #c4a882;
   --chart-5: #6b8c7a;
 
+  /* Status — muted/earthy to fit the cream canvas */
+  --success: #6b7d4f;
+  --warning: #b8842c;
+  --error: #a83c2c;
+
+  /* Code blocks — Tandem navy on cream */
+  --code-bg: #18182a;
+  --code-text: #f0e9da;
+
   /* Radius — very tight, editorial feel */
   --radius: 0.125rem;
 
@@ -86,6 +95,11 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-code-bg: var(--code-bg);
+  --color-code-text: var(--code-text);
   --radius-sm: calc(var(--radius));
   --radius-md: calc(var(--radius));
   --radius-lg: calc(var(--radius) + 2px);

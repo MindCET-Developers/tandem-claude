@@ -213,8 +213,8 @@ export default function ReturnsPage() {
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className={`mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          brief.status === "completed" ? "bg-emerald-500/10 text-emerald-500" :
-                          "bg-amber-500/10 text-amber-500"
+                          brief.status === "completed" ? "bg-success/10 text-success" :
+                          "bg-warning/10 text-warning"
                         }`}>
                           <brief.toolIcon className="h-4 w-4" />
                         </div>
@@ -222,7 +222,7 @@ export default function ReturnsPage() {
                           <div className="flex items-start justify-between gap-2">
                             <h3 className="font-medium text-sm leading-snug">{brief.missionTitle}</h3>
                             {brief.driftFlags.length > 0 && (
-                              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                              <AlertCircle className="h-4 w-4 text-warning shrink-0" />
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{brief.summary}</p>
@@ -250,8 +250,8 @@ export default function ReturnsPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <Badge className={`text-xs ${
                             selectedBrief.status === "completed"
-                              ? "bg-emerald-500 text-white"
-                              : "bg-amber-500 text-white"
+                              ? "bg-success text-white"
+                              : "bg-warning text-white"
                           }`}>
                             {selectedBrief.status === "completed" ? "עובד" : "ממתין לבחינה"}
                           </Badge>
@@ -267,11 +267,11 @@ export default function ReturnsPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {selectedBrief.driftFlags.length > 0 && (
-                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                      <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
                         <div className="flex items-start gap-2">
-                          <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                          <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                           <div>
-                            <p className="text-sm font-medium text-amber-500">סטייה זוהתה</p>
+                            <p className="text-sm font-medium text-warning">סטייה זוהתה</p>
                             <ul className="mt-1 space-y-1">
                               {selectedBrief.driftFlags.map((flag, i) => (
                                 <li key={i} className="text-xs text-muted-foreground">{flag}</li>
@@ -294,7 +294,7 @@ export default function ReturnsPage() {
                             <p className="text-xs text-muted-foreground mb-1.5">קבצים שנוצרו</p>
                             <div className="space-y-1">
                               {selectedBrief.artifacts.filesCreated.map((file, i) => (
-                                <code key={i} className="block text-xs font-mono text-emerald-500 bg-emerald-500/5 px-2 py-1 rounded">
+                                <code key={i} className="block text-xs font-mono text-success bg-success/5 px-2 py-1 rounded">
                                   + {file}
                                 </code>
                               ))}
@@ -306,7 +306,7 @@ export default function ReturnsPage() {
                             <p className="text-xs text-muted-foreground mb-1.5">קבצים שעודכנו</p>
                             <div className="space-y-1">
                               {selectedBrief.artifacts.filesModified.map((file, i) => (
-                                <code key={i} className="block text-xs font-mono text-amber-500 bg-amber-500/5 px-2 py-1 rounded">
+                                <code key={i} className="block text-xs font-mono text-warning bg-warning/5 px-2 py-1 rounded">
                                   ~ {file}
                                 </code>
                               ))}
@@ -340,7 +340,7 @@ export default function ReturnsPage() {
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-sm font-medium">{decision.title}</p>
                               {decision.needsReview && (
-                                <Badge variant="outline" className="text-xs text-amber-500 border-amber-500/50">
+                                <Badge variant="outline" className="text-xs text-warning border-warning/50">
                                   דורש בחינה
                                 </Badge>
                               )}
@@ -361,7 +361,7 @@ export default function ReturnsPage() {
                         {selectedBrief.completionChecklist.map((item, i) => (
                           <div key={i} className="flex items-start gap-2 text-sm">
                             {item.completed ? (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                              <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
                             ) : (
                               <div className="h-4 w-4 rounded border border-border/50 shrink-0 mt-0.5" />
                             )}

@@ -17,9 +17,9 @@ import type { ReturnAnalysis } from '@/lib/ai/schemas'
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   completed: { label: 'הושלם', className: 'bg-green-100 text-green-800', icon: <CheckCircle2 className="h-4 w-4" /> },
-  partial:   { label: 'חלקי',  className: 'bg-amber-100 text-amber-800', icon: <AlertTriangle className="h-4 w-4" /> },
-  blocked:   { label: 'חסום',  className: 'bg-red-100 text-red-800',    icon: <AlertCircle className="h-4 w-4" /> },
-  failed:    { label: 'נכשל',  className: 'bg-red-100 text-red-800',    icon: <AlertCircle className="h-4 w-4" /> },
+  partial:   { label: 'חלקי',  className: 'bg-warning/10 text-warning', icon: <AlertTriangle className="h-4 w-4" /> },
+  blocked:   { label: 'חסום',  className: 'bg-error/10 text-error',    icon: <AlertCircle className="h-4 w-4" /> },
+  failed:    { label: 'נכשל',  className: 'bg-error/10 text-error',    icon: <AlertCircle className="h-4 w-4" /> },
 }
 
 const DRIFT_CONFIG: Record<string, { label: string; variant: 'default' | 'destructive' | 'secondary' | 'outline' }> = {
@@ -342,7 +342,7 @@ export default function ReturnPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <AlertTriangle className="h-4 w-4 text-warning" />
                   סיכונים שהתגלו ({analysis.new_risks.length})
                 </CardTitle>
               </CardHeader>
@@ -352,9 +352,9 @@ export default function ReturnPage() {
                     <div key={i} className="flex items-start gap-2 text-sm">
                       <Badge
                         className={
-                          r.severity === 'critical' ? 'bg-red-100 text-red-800 text-[10px]' :
+                          r.severity === 'critical' ? 'bg-error/10 text-error text-[10px]' :
                           r.severity === 'high'     ? 'bg-orange-100 text-orange-800 text-[10px]' :
-                          r.severity === 'medium'   ? 'bg-amber-100 text-amber-800 text-[10px]' :
+                          r.severity === 'medium'   ? 'bg-warning/10 text-warning text-[10px]' :
                                                       'bg-slate-100 text-slate-700 text-[10px]'
                         }
                       >

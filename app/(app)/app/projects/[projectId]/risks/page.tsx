@@ -10,9 +10,9 @@ interface PageProps {
 }
 
 const SEVERITY_CONFIG: Record<string, { label: string; className: string; order: number }> = {
-  critical: { label: 'קריטי',  className: 'bg-red-100 text-red-800 border-red-200',       order: 0 },
+  critical: { label: 'קריטי',  className: 'bg-error/10 text-error border-error/30',       order: 0 },
   high:     { label: 'גבוה',   className: 'bg-orange-100 text-orange-800 border-orange-200', order: 1 },
-  medium:   { label: 'בינוני', className: 'bg-amber-100 text-amber-800 border-amber-200',   order: 2 },
+  medium:   { label: 'בינוני', className: 'bg-warning/10 text-warning border-warning/30',   order: 2 },
   low:      { label: 'נמוך',   className: 'bg-slate-100 text-slate-700 border-slate-200',   order: 3 },
 }
 
