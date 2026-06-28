@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
     }
   )
 
+  let lastError: string | null = null
+
   // PKCE flow (OAuth / email confirmation with code)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -37,6 +39,8 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.redirect(`${origin}${next}`)
     }
+    lastError = `exchangeCodeForSession: ${error.message}`
+    console.error('[auth/callback]', lastError)
   }
 
   // OTP / magic link flow (token_hash + type)
@@ -48,6 +52,12 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.redirect(`${origin}${next}`)
     }
+    lastError = `verifyOtp: ${error.message}`
+    console.error('[auth/callback]', lastError)
+  }
+
+  if (!code && !token_hash) {
+    console.error('[auth/callback] no code or token_hash in URL', request.url)
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)

@@ -69,7 +69,7 @@ export default async function MissionsPage({ params }: PageProps) {
           <CardContent className="pt-6 text-center py-12">
             <Compass className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground mb-4">
-              עוד לא נוצרו תדריכי משימה — לחץ על "צור תדריך משימה" מכל משימה ברשימה
+              עוד לא נוצרו תדריכי משימה — לחץ על &quot;צור תדריך משימה&quot; מכל משימה ברשימה
             </p>
             <Button asChild>
               <Link href={`/app/projects/${projectId}/tasks`}>
