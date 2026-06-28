@@ -60,9 +60,9 @@ export default function ControlTowerPage() {
             <FlaskConical className="h-4 w-4 shrink-0" />
             <span>
               <strong>נתוני Demo</strong> — הנתונים כאן לדוגמה בלבד.{" "}
-              <a href="/app/projects" style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>
+              <Link href="/app/projects" style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>
                 עבור לפרויקטים שלך
-              </a>
+              </Link>
             </span>
           </div>
 
